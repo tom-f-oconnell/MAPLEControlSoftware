@@ -8,23 +8,14 @@
 #  Send an instruction via email using the apropriate format (see remoteOperation.py for example) to start, e.g., virgining routine remotely.
 #  Cycling listenMode() permits MAPLE to perform repeated remote instructions.
 
-
-## Dependencies
-import cv2
-import numpy as np
-import time
 import sys
 import os
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import robotutil
-import math
-import random as rand
-import matplotlib.pyplot as plt
-import ConfigParser
 import remoteOperation as remote
-
-# Import workspace that has the modules we're using.
 import ExampleSocialWorkspace
+
 
 # Now we can reference the modules in ExampleSocialWorkspace, like:
 #   The dispenser object is ExampleSocialWorkspace.SocialWorkspace['dispenser1']

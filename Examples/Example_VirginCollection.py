@@ -9,22 +9,14 @@
 #  Collets newly hatched flies every intCollect seconds for a total of tCollect seconds.
 #  Newly hatched flies are sequentially deposited into FlyPlate wells.
 
-## Dependencies
-import cv2
-import numpy as np
-import time
 import sys
 import os
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import robotutil
-import math
-import random as rand
-import matplotlib.pyplot as plt
-import ConfigParser
 import commonFlyTasks as cft
-
-# Import relevant workspace
 import ExampleSocialWorkspace
+
 
 # Virgin collection variables
 tCollect = 86400		# Total virgin collection time in seconds.

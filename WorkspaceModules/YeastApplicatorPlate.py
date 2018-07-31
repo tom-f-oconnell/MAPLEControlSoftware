@@ -7,6 +7,7 @@
 
 import numpy as np
 
+
 class YeastApplicatorPlate:
     def __init__(self, anchorX, anchorY):
         nrows = 7       # maximum possible rows and columns in arena

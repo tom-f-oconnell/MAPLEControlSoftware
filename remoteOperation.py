@@ -10,16 +10,17 @@
 import time
 import traceback
 import smtplib
-import email
 import poplib
-import numpy as np
 from email import parser
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 import urllib2
+
+import numpy as np
+
 import commonFlyTasks
-import robotutil
+
 
 # Sends email containing images of arenanum arenas
 def notifyUserFail(robot, arenanum, mailfrom, attPic=0, qualPic=25, attImg=1, delFiles=1, robotEMailAccount='example@gmail.com', PWrobotEMailAccount='examplePW'):

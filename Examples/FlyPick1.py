@@ -5,12 +5,14 @@
 
 ## Hardcoded program to pick & deposit flies
 
-import cv2
-import numpy as np
 import time
-import robotutil
 
+import numpy as np
+import cv2
+
+import robotutil
 import Workspace2
+
 
 #### BEGIN PGM ####
 robot = robotutil.MAPLE("MAPLE.cfg")

@@ -7,6 +7,7 @@
 
 import numpy as np
 
+
 class TriangleMaze:
 
     MaxThickness = 7.5

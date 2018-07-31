@@ -5,11 +5,10 @@
 
 ## Yeast workspace configuration file
 
-import numpy as np
-
 import WorkspaceModules.YeastApplicatorPlate
 import WorkspaceModules.YeastArena
 import WorkspaceModules.YeastArena3x3
+
 
 YeastWorkspace = { 'baseThickness': 2.93, 'yeastApplicatorPlate': WorkspaceModules.YeastApplicatorPlate.YeastApplicatorPlate(422.0, 247), 
 					'yeastArena': WorkspaceModules.YeastArena.YeastArena(285, 139),

@@ -8,17 +8,17 @@
 #  the FlySorter automated experiment platform (project name MAPLE).
 #  High-level commands can be called in primary experimental scripts with relevant coordinates.
 
-## Dependencies
-import os
-import math
-import cv2
-import numpy as np
 import time
+import math
 import ConfigParser
 import urllib2
-import random as rand
+
+import numpy as np
+import cv2
 import pyicic.IC_ImagingControl
+
 import flysorterSerial
+
 
 class MAPLE:
     """Class for fly manipulation robot."""

@@ -7,23 +7,15 @@
 #  Description: Picks yeast colonies from source plate and deposits or streaks them into target plates. Lids are withdrawn and replaced before and after probing plates.
 #  Applicators are replaced before a new source colony is picked. Source colonies are detected automatically. Colonies are deposited into target plates according to predetermined schema.
 
-## Dependencies
-import cv2
-import numpy as np
-import time
 import sys
 import os
+import time
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import robotutil
-import math
-import random as rand
-import matplotlib.pyplot as plt
-import ConfigParser
-from datetime import datetime
-import commonFlyTasks as cft
 import commonYeastTasks as cyt
-# Import relevant workspace
 import ExampleYeastWorkspace
+
 
 #### BEGIN PGM ####
 robot = robotutil.MAPLE("MAPLE.cfg")

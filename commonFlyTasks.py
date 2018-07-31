@@ -6,6 +6,7 @@
 import random as rand
 import time
 
+
 # Highest order command to withdraw a single fly from a single well in the housing module
 def homeWithdraw(robot, FlyPlate, wellID, refptX='N', refptY='N', carefulZ=9, dislodgeZ=10, vacBurst=1, vacDur=4000, homeZ=45):
     homecoordX = FlyPlate.getWell(wellID)[0]

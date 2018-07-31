@@ -5,11 +5,13 @@
 
 ## Serial port handling class
 
-import serial
 import os
 import sys
-import glob
 import time
+import glob
+
+import serial
+
 
 # Serial communications class that is used for multiple devices.
 #

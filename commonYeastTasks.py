@@ -3,10 +3,8 @@
 ## See the LICENSE file for more details.
 ##
 
-import random as rand
 import time
-import numpy as np
-import cv2
+
 
 ## Highest order commands for yeast colony manipulation
 

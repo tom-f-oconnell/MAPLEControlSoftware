@@ -10,25 +10,15 @@
 #  Example includes moving flies from housing module well number startWell up until endWell into behavior module arena number startArn until endArn.
 #  Arena sequential order is determined by line-wise order of coordinates in Arena_Coordinates.cfg OR from list-wise highest to lowest X and Y coordinates as determined in-script (X and Y coordinates at the same order are considered a match in the latter case).
 
-
-
-## Dependencies
-import cv2
-import numpy as np
-import time
 import sys
 import os
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import robotutil
-import math
-import random as rand
-import matplotlib.pyplot as plt
-import ConfigParser
-from datetime import datetime
 import commonFlyTasks as cft
-import remoteOperation as remote
-# Import relevant workspace
 import ExampleSocialWorkspace
+#import remoteOperation as remote
+
 
 #### BEGIN PGM ####
 coordfromcfg = False       # set True to read Arena_Coordinates.cfg file for coordinates

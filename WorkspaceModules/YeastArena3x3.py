@@ -6,10 +6,8 @@
 #  File: YeastArena3x3.py
 #  Description: Function container to access coordinates for yeast arenas in a 3 by 3 configuration for each of MAPLE's end effectors.
 
-
-## Dependencies
 import numpy as np
-import cv2
+
 
 class YeastArena3x3:
     def __init__(self, anchorX, anchorY):

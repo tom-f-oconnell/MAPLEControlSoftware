@@ -7,6 +7,7 @@
 
 import numpy as np
 
+
 class FlyPlate:
 
     MaxThickness = 19.

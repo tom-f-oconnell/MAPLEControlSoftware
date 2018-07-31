@@ -3,11 +3,14 @@
 ## See the LICENSE file for more details.
 ##
 
-import cv2
-import numpy as np
-import time
-import robotutil
 import os.path
+import time
+
+import numpy as np
+import cv2
+
+import robotutil
+
 
 configFile = "MAPLE.cfg"
 

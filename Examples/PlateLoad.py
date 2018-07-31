@@ -5,12 +5,14 @@
 
 ## Program to dispense flies & deposit into a FlyPlate
 
+import time
+
 import cv2
 import numpy as np
-import time
-import robotutil
 
+import robotutil
 import Workspace1
+
 
 if Workspace1.Workspace1['dispenser1'].dispenserPort is None:
     print "Dispenser init error."
@@ -106,5 +108,7 @@ while flyCount < 96:
 
 robot.light(False)
 
+# TODO this killing windows started as a side effect in robot calls?
+# or just a remnant?
 cv2.destroyAllWindows()
 robot.release()

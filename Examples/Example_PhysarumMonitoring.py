@@ -4,21 +4,17 @@
 #  Description: Repeatedly captures images of slime mold plates arranged in a 3 by 3 configuration for high-throughput time lapse movies and offline analysis.
 #  Inter-image interval and total duration are variable.
 
-## Dependencies
-import cv2
-import numpy as np
-import time
 import sys
 import os
+import time
+
+import cv2
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import robotutil
-import math
-import random as rand
-import matplotlib.pyplot as plt
-import ConfigParser
-from datetime import datetime
 import commonYeastTasks as cyt
 import ExampleYeastWorkspace
+
 
 #### BEGIN PGM ####
 robot = robotutil.MAPLE("MAPLE.cfg")

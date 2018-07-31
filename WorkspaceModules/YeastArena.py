@@ -6,10 +6,8 @@
 #  File: YeastArena.py
 #  Description: Function container to access yeast arena coordinates for each of MAPLE's end effectors.
 
-
-## Dependencies
 import numpy as np
-import cv2
+
 
 class YeastArena:
     def __init__(self, anchorX, anchorY):

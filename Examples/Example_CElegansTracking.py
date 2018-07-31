@@ -4,19 +4,15 @@
 #  Description: Repeatedly captures x images of a single arena ID per y seconds, and saves them as .png for offline tracking.
 #  				Additionally computes difference images to aid in tracking.
 
-## Dependencies
-import cv2
-import numpy as np
-import time
 import sys
 import os
+
+import cv2
+import numpy as np
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import robotutil
-import math
-import random as rand
-import matplotlib.pyplot as plt
-import ConfigParser
-from datetime import datetime
+
 
 #### BEGIN PGM ####
 robot = robotutil.MAPLE("MAPLE.cfg")

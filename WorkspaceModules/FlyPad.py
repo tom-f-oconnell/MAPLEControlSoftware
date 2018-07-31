@@ -6,7 +6,7 @@
 ## Fly pad class file
 
 import numpy as np
-import cv2
+
 
 class FlyPad:
 

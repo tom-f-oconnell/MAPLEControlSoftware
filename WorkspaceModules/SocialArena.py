@@ -6,10 +6,8 @@
 #  File: SocialArena.py
 #  Description: Contains and functions used to access social arena array.
 
-
-## Dependencies
 import numpy as np
-import cv2
+
 
 class SocialArena:
     def __init__(self, anchorX, anchorY):

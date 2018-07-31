@@ -9,22 +9,16 @@
 #  Example routine includes moving flies from FlyPlate wells into social arenas.
 #  MAPLE waits for the social experiment to complete before unloading flies back into FlyPlate wells. Manually press any key when the arena tray is placed back in the workspace.
 
-## Dependencies
-import cv2
-import numpy as np
-import time
 import sys
 import os
+
+import cv2
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import robotutil
-import math
-import random as rand
-import matplotlib.pyplot as plt
-import ConfigParser
 import commonFlyTasks as cft
-
-# Import relevant workspace
 import ExampleSocialWorkspace
+
 
 #### Initialize MAPLE ####
 robot = robotutil.MAPLE("MAPLE.cfg")
