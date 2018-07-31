@@ -21,12 +21,6 @@ if Workspace1.Workspace1['dispenser1'].dispenserPort is None:
 #### BEGIN PGM ####
 robot = robotutil.MAPLE("MAPLE.cfg")
 
-if robot.isInitialized == False:
-    print "Initialization error."
-    exit()
-else:
-    print "Robot initialized."
-
 #robot.home()
 
 # Construct some helpful points

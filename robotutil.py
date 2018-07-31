@@ -60,7 +60,7 @@ class MAPLE:
                       'StatusURL': ''
                       }
 
-    def __init__(self, robotConfigFile,initDisp=1):
+    def __init__(self, robotConfigFile):
         print "Reading config file...",
         self.config = ConfigParser.RawConfigParser(self.configDefaults)
         self.readConfig(robotConfigFile)
@@ -83,24 +83,19 @@ class MAPLE:
             tempPort.close()
 
         if self.smoothie is None:
-            print "Serial initialization failed."
-            if self.smoothie is None:
-                print "Smoothie board not found."
-            return
+            raise RuntimeError(
+                "Serial initialization failed. Smoothie board not found.")
 
         print "Initializing camera...",
         self.cam = cameraInit()
         if self.cam == None:
-            print "Camera init fail."
             self.smoothie.close()
-            return
+            raise RuntimeError("Camera init fail.")
 
         print "done."
 
         self.currentPosition = self.getCurrentPosition()
-        self.isInitialized = True
         print "Robot initialized."
-        return
 
     # Read in the config, and assign values to the appropriate vars
     def readConfig(self, configFile):
@@ -654,7 +649,6 @@ class MAPLE:
 
 # Set up close-up camera
 def cameraInit():
-    global ic_ic
     print "Opening camera interface."
     ic_ic = pyicic.IC_ImagingControl.IC_ImagingControl()
     ic_ic.init_library()

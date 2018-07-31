@@ -37,12 +37,6 @@ def printPosition(robot, img):
 # And pass in the ZAxisBaseAddress here
 robot = robotutil.MAPLE(configFile)
 
-if robot.isInitialized == False:
-    print "Initialization error."
-    exit()
-else:
-    print "Robot initialized."
-
 # robot.home()
 
 robot.light(True)

@@ -17,12 +17,6 @@ import Workspace2
 #### BEGIN PGM ####
 robot = robotutil.MAPLE("MAPLE.cfg")
 
-if robot.isInitialized == False:
-    print "Initialization error."
-    exit()
-else:
-    print "Robot initialized."
-
 #robot.home()
 
 # Calculate the points where we need to take images to find flies
