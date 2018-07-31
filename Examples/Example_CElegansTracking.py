@@ -16,7 +16,6 @@ import robotutil
 
 #### BEGIN PGM ####
 robot = robotutil.MAPLE("MAPLE.cfg")
-# TODO why no home here?
 
 duration = 600		# in seconds (1 fps)
 robot.moveToSpd([91, 122, 0, 46.8, 0], spd=5000)

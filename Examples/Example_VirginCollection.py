@@ -24,7 +24,6 @@ intCollect = 1800		# Virgin collection interval in seconds.
 
 #### Initialize MAPLE ####
 robot = robotutil.MAPLE("MAPLE.cfg")
-robot.home()
 
 ## Starts main virgin collection routine
 cft.collectHatchedForT(robot, ExampleSocialWorkspace.SocialWorkspace['plate1'], ExampleSocialWorkspace.SocialWorkspace['dispenser1'], onlyifsure=1, carefulZ=9, vacBurst=1, homeZ=44, dispiter=1, carryovernDispensed=0, collectT=tCollect, collectInt=intCollect, maxconsecstuck=4)

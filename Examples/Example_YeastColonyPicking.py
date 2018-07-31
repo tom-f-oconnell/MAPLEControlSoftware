@@ -19,7 +19,6 @@ import ExampleYeastWorkspace
 
 #### BEGIN PGM ####
 robot = robotutil.MAPLE("MAPLE.cfg")
-robot.home()
 
 ## Starts main yeast colony manipulation routine
 

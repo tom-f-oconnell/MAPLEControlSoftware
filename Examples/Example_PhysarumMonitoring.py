@@ -18,7 +18,6 @@ import ExampleYeastWorkspace
 
 #### BEGIN PGM ####
 robot = robotutil.MAPLE("MAPLE.cfg")
-robot.home()
 
 imgInterval = 60		# in seconds
 tTotal = 0

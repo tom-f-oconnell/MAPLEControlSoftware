@@ -99,8 +99,7 @@ class MAPLE:
         self.flyManipAir(False)
         self.smallPartManipVac(False)
         # TODO define other two valve states as well?
-        # TODO also home? in place of M999? (less, but still majority of
-        # examples do this)
+        self.home()
 
 
     # Read in the config, and assign values to the appropriate vars
@@ -135,16 +134,13 @@ class MAPLE:
         self.smoothie.sendSyncCmd("G28\n")
         self.smoothie.sendSyncCmd("G01 F{0}\n".format(self.travelSpeed))
         self.currentPosition = np.array([0., 0., 0., 0., 0.])
-        return
 
     # Only homes end effectors; Faster than regular home()
     def homeZ2(self):
         self.smoothie.sendSyncCmd("G28 B0\n")
-        return
 
     def homeZ0(self):
         self.smoothie.sendSyncCmd("G28 Z0\n")
-        return
 
     # Captures current camera image; returns as numpy array
     def captureImage(self):

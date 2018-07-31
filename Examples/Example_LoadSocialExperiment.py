@@ -22,7 +22,6 @@ import ExampleSocialWorkspace
 
 #### Initialize MAPLE ####
 robot = robotutil.MAPLE("MAPLE.cfg")
-robot.home()
 
 ## Starts main example transportation routines
 # Only transport flies into the left compartment first.

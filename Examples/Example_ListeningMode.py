@@ -26,7 +26,6 @@ listeningTime = 60		# Cycles of engaging listeningMode(). Duration is ~ 1m if no
 
 #### Initialize MAPLE ####
 robot = robotutil.MAPLE("MAPLE.cfg")
-robot.home()
 
 ## Starts main listening mode routine
 timeelapsed = 0
