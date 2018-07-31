@@ -36,8 +36,6 @@ class MAPLE:
     maxExtents = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
     OutputDir = ""
 
-    isInitialized = False
-
     travelSpeed = 5000
     acceleration = 200
 
@@ -96,6 +94,14 @@ class MAPLE:
 
         self.currentPosition = self.getCurrentPosition()
         print "Robot initialized."
+
+        self.smoothie.sendCmd("M999")
+        self.flyManipAir(False)
+        self.smallPartManipVac(False)
+        # TODO define other two valve states as well?
+        # TODO also home? in place of M999? (less, but still majority of
+        # examples do this)
+
 
     # Read in the config, and assign values to the appropriate vars
     def readConfig(self, configFile):

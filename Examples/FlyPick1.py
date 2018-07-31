@@ -16,8 +16,8 @@ import Workspace2
 
 #### BEGIN PGM ####
 robot = robotutil.MAPLE("MAPLE.cfg")
-
-#robot.home()
+# TODO some reason we didn't want to call M999 and set two valve states here?
+# TODO some reason we didn't want to home here (was commented)?
 
 # Calculate the points where we need to take images to find flies
 Workspace2.Workspace2['pad1'].calculateRegionCoords(robot.FOV)

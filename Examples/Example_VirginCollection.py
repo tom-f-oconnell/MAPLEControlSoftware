@@ -24,9 +24,6 @@ intCollect = 1800		# Virgin collection interval in seconds.
 
 #### Initialize MAPLE ####
 robot = robotutil.MAPLE("MAPLE.cfg")
-robot.smoothie.sendCmd("M999")
-robot.flyManipAir(False)
-robot.smallPartManipVac(False)
 robot.home()
 
 ## Starts main virgin collection routine

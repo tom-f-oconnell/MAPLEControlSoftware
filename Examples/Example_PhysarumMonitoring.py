@@ -18,9 +18,6 @@ import ExampleYeastWorkspace
 
 #### BEGIN PGM ####
 robot = robotutil.MAPLE("MAPLE.cfg")
-robot.smoothie.sendCmd("M999")
-robot.flyManipAir(False)
-robot.smallPartManipVac(False)
 robot.home()
 
 imgInterval = 60		# in seconds
@@ -29,6 +26,9 @@ picnum = 0
 while tTotal < 60*60*10:		# in seconds
 	tStart = time.time()
 	for numArena in range(0,9):
+                # TODO should whether light is required to take frames just be
+                # set in confiq, and change how robot methods work? or are there
+                # cases where some actions will require light?
 		curImg = cyt.imgArena(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'], numArena, light=0)
 		time.sleep(0.1)
 		cv2.imwrite(str(numArena)+ '_' + str(picnum) + '.png', curImg)

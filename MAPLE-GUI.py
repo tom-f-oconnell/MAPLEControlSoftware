@@ -36,6 +36,7 @@ def printPosition(robot, img):
 
 # And pass in the ZAxisBaseAddress here
 robot = robotutil.MAPLE(configFile)
+# TODO some reason we didn't want to call M999 and set two valve states here?
 
 # robot.home()
 

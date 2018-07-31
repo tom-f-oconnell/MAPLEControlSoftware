@@ -16,9 +16,7 @@ import robotutil
 
 #### BEGIN PGM ####
 robot = robotutil.MAPLE("MAPLE.cfg")
-robot.smoothie.sendCmd("M999")
-robot.flyManipAir(False)
-robot.smallPartManipVac(False)
+# TODO why no home here?
 
 duration = 600		# in seconds (1 fps)
 robot.moveToSpd([91, 122, 0, 46.8, 0], spd=5000)
@@ -46,6 +44,8 @@ for picnum in range(0, duration):
 	        gray2 = len(np.nonzero(gray2)[0])
 	        img = img2
 	        cv2.imwrite('delta_' + str(picnum) + '.png', gray2)
+        # TODO which error is this supposed to deal with? (except should be
+        # specific)
 	except:
 		print picnum
 		robot = robotutil.MAPLE("MAPLE.cfg")

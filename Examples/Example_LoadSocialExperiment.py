@@ -22,9 +22,6 @@ import ExampleSocialWorkspace
 
 #### Initialize MAPLE ####
 robot = robotutil.MAPLE("MAPLE.cfg")
-robot.smoothie.sendCmd("M999")
-robot.flyManipAir(False)
-robot.smallPartManipVac(False)
 robot.home()
 
 ## Starts main example transportation routines
