@@ -41,7 +41,7 @@ def notifyUserFail(robot, arenanum, mailfrom, attPic=0, qualPic=25, attImg=1, de
         msg = MIMEMultipart()
         for imgnum in range(len(arenanum)):
             curarenanum = str(arenanum[imgnum])
-            imgname = curarenanum + 'errImage.png'
+            imgname = curarenanum + 'errImage.jpg'
             with open(imgname, 'rb') as fp:
                 img = MIMEImage(fp.read())
             msg.attach(img)
@@ -57,19 +57,19 @@ def notifyUserFail(robot, arenanum, mailfrom, attPic=0, qualPic=25, attImg=1, de
         time.sleep(0.2)
         robot.cam.start_live()
         robot.cam.snap_image()
-        robot.cam.save_image(arenanum + 'errImage.png', 1, jpeq_quality=qualPic)
+        robot.cam.save_image(arenanum + 'errImage.jpg', 1, jpeq_quality=qualPic)
         robot.cam.stop_live()
         robot.dwell(50)
         robot.light(False)
         msg['Subject'] = 'Failure: Arena ' + arenanum + ' Withdraw'
         msg = MIMEMultipart()
         msg.preamble = 'Arena ' + arenanum + ' failed to unload.'
-        fp = open(arenanum + 'errImage.png', 'rb')
+        fp = open(arenanum + 'errImage.jpg', 'rb')
         img = MIMEImage(fp.read())
         fp.close()
         msg.attach(img)
         if delFiles == 1:
-            os.remove(arenanum + 'errImage.png')
+            os.remove(arenanum + 'errImage.jpg')
     if attPic == 0 and attImg == 0:
         arenanum = str(arenanum)
         msg['Subject'] = 'Failure: Arena ' + arenanum + ' Withdraw'

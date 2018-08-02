@@ -463,7 +463,7 @@ class MAPLE:
         return
 
     # Captures arena picture at location (Images named consecutively if multiple coordinates specified)
-    def SavePicAt(self, Xcoords, Ycoords, IndVect, qualPic=25, Zcam=40, ImgName='errImage.png'):
+    def SavePicAt(self, Xcoords, Ycoords, IndVect, qualPic=25, Zcam=40, ImgName='errImage.jpg'):
         self.light(True)
         self.cam.start_live()
         for ImgNum in range(len(Xcoords)):
@@ -471,7 +471,7 @@ class MAPLE:
             self.dwell(50)      # Put higher to reduce effect of motion-caused rig trembling on picture
             self.cam.snap_image()
             curInd = str(IndVect[ImgNum])
-            self.cam.save_image(curInd + 'errImage.png', 1, jpeq_quality=qualPic)
+            self.cam.save_image(curInd + 'errImage.jpg', 1, jpeq_quality=qualPic)
             self.dwell(10)
         self.cam.stop_live()
         self.light(False)
