@@ -83,7 +83,7 @@ class MAPLE:
             tempPort.close()
 
         if self.smoothie is None:
-            raise RuntimeError(
+            raise IOError(
                 "Serial initialization failed. Smoothie board not found.")
 
         print "Initializing camera...",
@@ -112,7 +112,7 @@ class MAPLE:
 
         if self.cam == None:
             self.smoothie.close()
-            raise RuntimeError("Camera init fail.")
+            raise IOError("Camera init fail.")
 
         print "done."
 
