@@ -12,12 +12,13 @@ import time
 import math
 import ConfigParser
 import urllib2
+import importlib
 
 import numpy as np
 import cv2
-import pyicic.IC_ImagingControl
 
 import flysorterSerial
+import cameras
 
 
 class MAPLE:
@@ -55,10 +56,11 @@ class MAPLE:
                       'Z2OffsetZ': '8',
                       'HFOV': '14.5',
                       'VFOV': '11.25',
-                      'StatusURL': ''
+                      'StatusURL': '',
+                      'camera_class': 'cameras.PyICIC_Camera'
                       }
 
-    def __init__(self, robotConfigFile):
+    def __init__(self, robotConfigFile, cam_class=None):
         print "Reading config file...",
         self.config = ConfigParser.RawConfigParser(self.configDefaults)
         self.readConfig(robotConfigFile)
@@ -85,7 +87,29 @@ class MAPLE:
                 "Serial initialization failed. Smoothie board not found.")
 
         print "Initializing camera...",
-        self.cam = cameraInit()
+        if cam_class is None:
+            parts = self.full_cam_class_name.rsplit('.', 1)
+            try:
+                cam_module = importlib.import_module(parts[0])
+            except ImportError as e:
+                # TODO maybe print this if there are any problems starting cam?
+                import pyclbr
+                cams = pyclbr.readmodule('cameras')
+                print(cams)
+                cams.remove('Camera')
+                print "Available cameras:"
+                for c in cams:
+                    print c
+                print "Set camera_class to one of them in your MAPLE.cfg file."
+                raise
+
+            cam_class = getattr(cam_module, parts[1])
+
+        if not issubclass(cam_class, cameras.Camera):
+            raise ValueError('Camera class must subclass cameras.Camera')
+
+        self.cam = cam_class()
+
         if self.cam == None:
             self.smoothie.close()
             raise RuntimeError("Camera init fail.")
@@ -119,7 +143,9 @@ class MAPLE:
         self.StatusURL = self.config.get('DEFAULT', 'StatusURL')
         if ( self.StatusURL != ''):
             urllib2.urlopen(StatusURL + "&" + "st=1")
-        return
+
+        self.full_cam_class_name = self.config.get('DEFAULT', 'camera_class')
+
 
     def release(self):
         self.light(False)
@@ -648,19 +674,3 @@ class MAPLE:
             tempdeg = self.getDegs(circles)
             return tempdeg
 
-
-# Set up close-up camera
-def cameraInit():
-    print "Opening camera interface."
-    ic_ic = pyicic.IC_ImagingControl.IC_ImagingControl()
-    ic_ic.init_library()
-    cam_names = ic_ic.get_unique_device_names()
-    cam = ic_ic.get_device(cam_names[0])
-    cam.open()
-    cam.gain.value = 10
-    cam.exposure.auto = False
-    cam.exposure.value = -10
-    cam.set_video_format('BY8 (2592x1944)')
-    cam.set_frame_rate(4.00)
-    cam.prepare_live()
-    return cam
