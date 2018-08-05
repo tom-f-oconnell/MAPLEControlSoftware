@@ -15,6 +15,7 @@ import time
 import ConfigParser
 import urllib2
 import importlib
+import pyclbr
 
 import numpy as np
 import cv2
@@ -87,36 +88,50 @@ class MAPLE:
 
         if self.smoothie is None:
             raise IOError(
-                "Serial initialization failed. Smoothie board not found.")
+                'Serial initialization failed. Smoothie board not found.')
+
+        def print_builtin_cameras():
+            cams = pyclbr.readmodule('cameras')
+            cams.pop('Camera')
+            cams.pop('CameraNotFoundError')
+            cams.pop('NoFrameError')
+            print '\n\nAvailable cameras:'
+            for c in cams:
+                print 'cameras.{}'.format(c)
+
+        def class2str(cls):
+            return '{}.{}'.format(cls.__module__, cls.__name__)
 
         print "Initializing camera...",
         if cam_class is None:
             parts = self.full_cam_class_name.rsplit('.', 1)
             try:
                 cam_module = importlib.import_module(parts[0])
-            except ImportError as e:
-                # TODO maybe print this if there are any problems starting cam?
-                import pyclbr
-                cams = pyclbr.readmodule('cameras')
-                print(cams)
-                cams.remove('Camera')
-                print "Available cameras:"
-                for c in cams:
-                    print c
-                print "Set camera_class to one of them in your MAPLE.cfg file."
+                cam_class = getattr(cam_module, parts[1])
+
+            except (ImportError, AttributeError) as e:
+                print_builtin_cameras()
+                print ('\nSet camera_class to one of them in your ' +
+                    'MAPLE.cfg file.\n')
+                self.smoothie.close()
                 raise
 
-            cam_class = getattr(cam_module, parts[1])
-
         if not issubclass(cam_class, cameras.Camera):
-            raise ValueError('Camera class must subclass cameras.Camera')
-
-        self.cam = cam_class()
-
-        if self.cam == None:
-            print "Camera init fail."
+            print_builtin_cameras()
             self.smoothie.close()
-            raise IOError("Camera init fail.")
+            raise ValueError('camera_class must subclass cameras.Camera' +
+                ', but class {} does not.'.format(class2str(cam_class)))
+
+        try:
+            self.cam = cam_class()
+        except ImportError as e:
+            print_builtin_cameras()
+            print ('\nSet camera_class to one of them in your ' +
+                'MAPLE.cfg file.\n')
+            print 'Missing dependencies for camera_class={}'.format(
+                class2str(cam_class))
+            self.smoothie.close()
+            raise
 
         print "done."
 
@@ -172,14 +187,7 @@ class MAPLE:
 
     # Captures current camera image; returns as numpy array
     def captureImage(self):
-        self.cam.start_live()
-        self.cam.snap_image()
-        (imgdata, w, h, d) = self.cam.get_image_data()
-        self.cam.stop_live()
-        img = np.ndarray(buffer = imgdata,
-                         dtype = np.uint8,
-                         shape = (h, w, d))
-        return img
+        return self.cam.get_frame()
 
     # Returns current position as array
     def getCurrentPosition(self):
@@ -490,15 +498,12 @@ class MAPLE:
     # Captures arena picture at location (Images named consecutively if multiple coordinates specified)
     def SavePicAt(self, Xcoords, Ycoords, IndVect, qualPic=25, Zcam=40, ImgName='errImage.jpg'):
         self.light(True)
-        self.cam.start_live()
         for ImgNum in range(len(Xcoords)):
             self.moveToSpd(pt=[float(Xcoords[ImgNum]), float(Ycoords[ImgNum]), 0, Zcam, 10, 5000])
             self.dwell(50)      # Put higher to reduce effect of motion-caused rig trembling on picture
-            self.cam.snap_image()
             curInd = str(IndVect[ImgNum])
-            self.cam.save_image(curInd + 'errImage.jpg', 1, jpeq_quality=qualPic)
+            self.cam.write_jpg(curInd + 'errImage.jpg', quality=qualPic)
             self.dwell(10)
-        self.cam.stop_live()
         self.light(False)
 
     # Finds immobile fly on white surface (CO2 board)
