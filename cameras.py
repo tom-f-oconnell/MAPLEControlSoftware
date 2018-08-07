@@ -6,8 +6,8 @@
 """
 Abstraction layer for other camera interfaces (pyicic, opencv, etc)
 
-To implement a custom camera, subclass cameras.Camera, and implement the two
-methods with the @abstractmethod decorator (get_frame and close)
+To implement a custom camera, subclass cameras.Camera, and implement the
+methods with the @abstractmethod decorator.
 """
 
 import abc
@@ -32,6 +32,9 @@ class Camera(ABC):
         Camera needs an __init__ with no arguments, so it can be instantiated
         in a uniform way inside of the MAPLE __init__.
 
+        Any dependencies specific to your camera should be imported as the first
+        lines inside this function.
+
         Your __init__ implementation will likely create some other Python object
         to manage interactions with the camera through whatever other library.
         If this object is called `backing_camera_object`, the last line of your
@@ -49,7 +52,6 @@ class Camera(ABC):
         ```
         """
         pass
-
 
     @abstractmethod
     def get_frame(self):
