@@ -94,9 +94,6 @@ class Camera(ABC):
         IMWRITE_JPEG_QUALITY = 1
         cv2.imwrite(filename, frame, [IMWRITE_JPEG_QUALITY, quality])
 
-    # TODO context manager fns for starting resources / freeing them?
-    # TODO provide instance variable for backing camera object (as property?)
-
 
 class PyICIC_Camera(Camera):
     def __init__(self):
