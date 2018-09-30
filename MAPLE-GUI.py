@@ -44,6 +44,11 @@ robot.light(True)
 
 cv2.namedWindow("MAPLE")
 
+fly_vac = False
+fly_air = False
+smp_vac = False
+smp_air = False
+
 imageMode = True
 key = -1
 img = cv2.resize(robot.captureImage(), imgSize)
@@ -69,6 +74,12 @@ while ( key != 27 ): # ESC to exit
     SPACE       - update the image
     m           - toggle between capturing images continuously and not
     c 			- Capture image and save
+
+Valves:
+    n           - Toggle fly manipulator vacuum
+    b           - Toggle fly manipulator air
+    y           - Toggle small part manipulator vacuum
+    t           - Toggle small part manipulator air
 
 Move +/- 10mm:
     a/d         - X
@@ -141,6 +152,23 @@ Modifier keys:
         robot.moveRel(np.array([0.0, 0.0, 0.0, 0.0, -1.0]))
     elif( key == ord('L') ):
         robot.moveRel(np.array([0.0, 0.0, 0.0, 0.0, 1.0]))
+
+    elif key == ord('n'):
+        fly_vac = not fly_vac
+        robot.flyManipVac(fly_vac)
+
+    elif key == ord('b'):
+        fly_air = not fly_air
+        robot.flyManipAir(fly_air)
+
+    elif key == ord('y'):
+        smp_vac = not smp_vac
+        robot.smallPartManipVac(smp_vac)
+
+    elif key == ord('t'):
+        smp_air = not smp_air
+        robot.smallPartManipAir(smp_air)
+
     elif( key == 1 ): # ctrl-a
         robot.moveRel(np.array([0.1, 0.0, 0.0, 0.0, 0.0]))
     elif( key == 4 ): # ctrl-d
