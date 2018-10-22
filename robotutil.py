@@ -494,6 +494,13 @@ class MAPLE:
         self.smoothie.sendCmd(cmd)
         return
 
+    def unused_fet(self, state):
+        if (onOff == True):
+            cmd = "M50\n"
+        else:
+            cmd = "M51\n"
+        self.smoothie.sendCmd(cmd)
+
     # Captures arena picture at location (Images named consecutively if multiple coordinates specified)
     def SavePicAt(self, Xcoords, Ycoords, IndVect, qualPic=25, Zcam=40, ImgName='errImage.jpg'):
         self.light(True)

@@ -232,3 +232,9 @@ switch.gpio4.input_off_command        M49
 switch.gpio4.input_on_command         M48
 switch.gpio4.output_pin               2.6
 switch.gpio4.output_type              digital
+
+switch.gpio5.enable                   true
+switch.gpio5.input_off_command        M51
+switch.gpio5.input_on_command         M50
+switch.gpio5.output_pin               1.22
+switch.gpio5.output_type              digital

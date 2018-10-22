@@ -168,32 +168,38 @@ move_to_origin_after_home                   false              # move XY to 0,0 
 #home_z_first                                 true             # uncomment and set to true to home the Z first, otherwise Z homes after XY
 
 
-switch.gpio0.enable                   true           #
-switch.gpio0.input_off_command        M41            #
-switch.gpio0.input_on_command         M40            #
-switch.gpio0.output_pin               2.7            #
-switch.gpio0.output_type              digital        #
+switch.gpio0.enable                   true
+switch.gpio0.input_off_command        M41
+switch.gpio0.input_on_command         M40
+switch.gpio0.output_pin               2.7
+switch.gpio0.output_type              digital
 
-switch.gpio1.enable                   true           #
-switch.gpio1.input_off_command        M43            #
-switch.gpio1.input_on_command         M42            #
-switch.gpio1.output_pin               2.5           #
-switch.gpio1.output_type              digital        #
+switch.gpio1.enable                   true
+switch.gpio1.input_off_command        M43
+switch.gpio1.input_on_command         M42
+switch.gpio1.output_pin               2.5
+switch.gpio1.output_type              digital
 
-switch.gpio2.enable                   true           #
-switch.gpio2.input_off_command        M45            #
-switch.gpio2.input_on_command         M44            #
-switch.gpio2.output_pin               1.23           #
-switch.gpio2.output_type              digital        #
+switch.gpio2.enable                   true
+switch.gpio2.input_off_command        M45
+switch.gpio2.input_on_command         M44
+switch.gpio2.output_pin               1.23
+switch.gpio2.output_type              digital
 
-switch.gpio3.enable                   true           #
-switch.gpio3.input_off_command        M47            #
-switch.gpio3.input_on_command         M46            #
-switch.gpio3.output_pin               2.4            #
-switch.gpio3.output_type              digital        #
+switch.gpio3.enable                   true
+switch.gpio3.input_off_command        M47
+switch.gpio3.input_on_command         M46
+switch.gpio3.output_pin               2.4
+switch.gpio3.output_type              digital
 
-switch.gpio4.enable                   true           #
-switch.gpio4.input_off_command        M49            #
-switch.gpio4.input_on_command         M48            #
-switch.gpio4.output_pin               2.6            #
-switch.gpio4.output_type              digital        #
+switch.gpio4.enable                   true
+switch.gpio4.input_off_command        M49
+switch.gpio4.input_on_command         M48
+switch.gpio4.output_pin               2.6
+switch.gpio4.output_type              digital
+
+switch.gpio5.enable                   true
+switch.gpio5.input_off_command        M51
+switch.gpio5.input_on_command         M50
+switch.gpio5.output_pin               1.22
+switch.gpio5.output_type              digital

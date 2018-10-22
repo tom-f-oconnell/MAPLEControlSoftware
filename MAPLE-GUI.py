@@ -48,6 +48,8 @@ fly_vac = False
 fly_air = False
 smp_vac = False
 smp_air = False
+led = False
+unused_fet = False
 
 imageMode = True
 key = -1
@@ -75,11 +77,13 @@ while ( key != 27 ): # ESC to exit
     m           - toggle between capturing images continuously and not
     c 			- Capture image and save
 
-Valves:
-    n           - Toggle fly manipulator vacuum
-    b           - Toggle fly manipulator air
-    y           - Toggle small part manipulator vacuum
-    t           - Toggle small part manipulator air
+FETs:
+    y           - Toggle small part manipulator (L) vacuum
+    t           - Toggle small part manipulator (L) air
+    n           - Toggle fly manipulator (S) vacuum
+    b           - Toggle fly manipulator (S) air
+    z           - Toggle LED
+    x           - Toggle 6th FET (unused)
 
 Move +/- 10mm:
     a/d         - X
@@ -168,6 +172,14 @@ Modifier keys:
     elif key == ord('t'):
         smp_air = not smp_air
         robot.smallPartManipAir(smp_air)
+
+    elif key == ord('z'):
+        led = not led
+        robot.light(led)
+
+    elif key == ord('x'):
+        unused_fet = not unused_fet
+        robot.unused_fet(unused_fet)
 
     elif( key == 1 ): # ctrl-a
         robot.moveRel(np.array([0.1, 0.0, 0.0, 0.0, 0.0]))
