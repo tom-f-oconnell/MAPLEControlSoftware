@@ -134,11 +134,11 @@ class PyICIC_Camera(Camera):
     def write_jpg(self, filename, quality=50):
         """Writes a current image to filename in jpg format.
         """
-        robot.cam.start_live()
-        robot.cam.snap_image()
+        self.cam.start_live()
+        self.cam.snap_image()
         # the 1 is for JPG, 0 is for BMP
-        robot.cam.save_image(filename, 1, jpeq_quality=qualPic)
-        robot.cam.stop_live()
+        self.cam.save_image(filename, 1, jpeq_quality=qualPic)
+        self.cam.stop_live()
 
     def close(self):
         """Releases resources associated with connection to this camera.
