@@ -5,6 +5,7 @@
 
 import os.path
 import time
+import warnings
 
 import numpy as np
 import cv2
@@ -40,7 +41,8 @@ robot = robotutil.MAPLE(configFile)
 
 # robot.home()
 
-robot.light(True)
+if robot.cam_enabled:
+    robot.light(True)
 
 cv2.namedWindow("MAPLE")
 
@@ -53,15 +55,22 @@ unused_fet = False
 
 imageMode = True
 key = -1
-img = cv2.resize(robot.captureImage(), imgSize)
+
+if robot.cam_enabled:
+    img = cv2.resize(robot.captureImage(), imgSize)
+else:
+    img = np.zeros(imgSize)
+
 startTime = time.time()
 while ( key != 27 ): # ESC to exit
     if ( imageMode == True):
         # Update the image once a second
         if ( time.time() - startTime > 0.5 ):
             # Capture image, resize for the screen667u, and draw crosshairs
-            img = cv2.resize(robot.captureImage(), imgSize)
+            if robot.cam_enabled:
+                img = cv2.resize(robot.captureImage(), imgSize)
             startTime = time.time()
+
     # Update the position and show image every time, though
     printPosition(robot, img)
     cv2.imshow("MAPLE", img)
@@ -112,8 +121,11 @@ Modifier keys:
 
     elif( key == ord('p') ):
         print robot.getCurrentPosition()
+
     elif( key == ord(' ') ):
-        img = cv2.resize(robot.captureImage(), imgSize)
+        if robot.cam_enabled:
+            img = cv2.resize(robot.captureImage(), imgSize)
+
     elif( key == ord('m') ):
         imageMode = not imageMode
     elif( key == ord('a') ):
@@ -203,13 +215,17 @@ Modifier keys:
         robot.moveRel(np.array([0.0, 0.0, 0.0, 0.0, 0.1]))
     # Capture the current image and save it to a file img X.png
     elif( key == ord('c') ):
-        img = robot.captureImage()
-        i=0
-        filename = "MAPLE-" + str(i) + ".png"
-        while os.path.isfile(filename):
-            i += 1
+        if robot.cam_enabled:
+            img = robot.captureImage()
+            i=0
             filename = "MAPLE-" + str(i) + ".png"
-        cv2.imwrite(filename, img)
+            while os.path.isfile(filename):
+                i += 1
+                filename = "MAPLE-" + str(i) + ".png"
+            cv2.imwrite(filename, img)
+
+        else:
+            warnings.warn('Camera is disabled in config. Cannot save image.')
 
     else:
         if (( key != -1 ) and ( key != 27) ):

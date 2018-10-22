@@ -22,6 +22,9 @@ import flysorterSerial
 import cameras
 
 
+class CamDisabledError(IOError):
+    pass
+
 class MAPLE:
     """Class for fly manipulation robot."""
 
@@ -59,6 +62,7 @@ class MAPLE:
                       'VFOV': '11.25',
                       'StatusURL': '',
                       'camera_class': 'cameras.PyICIC_Camera'
+                      'camera_enabled': True
                       }
 
     def __init__(self, robotConfigFile, cam_class=None):
@@ -87,48 +91,49 @@ class MAPLE:
             raise IOError(
                 'Serial initialization failed. Smoothie board not found.')
 
-        def print_builtin_cameras():
-            cams = pyclbr.readmodule('cameras')
-            cams.pop('Camera')
-            cams.pop('CameraNotFoundError')
-            cams.pop('NoFrameError')
-            print '\n\nAvailable cameras:'
-            for c in cams:
-                print 'cameras.{}'.format(c)
+        if self.cam_enabled:
+            def print_builtin_cameras():
+                cams = pyclbr.readmodule('cameras')
+                cams.pop('Camera')
+                cams.pop('CameraNotFoundError')
+                cams.pop('NoFrameError')
+                print '\n\nAvailable cameras:'
+                for c in cams:
+                    print 'cameras.{}'.format(c)
 
-        def class2str(cls):
-            return '{}.{}'.format(cls.__module__, cls.__name__)
+            def class2str(cls):
+                return '{}.{}'.format(cls.__module__, cls.__name__)
 
-        print "Initializing camera...",
-        if cam_class is None:
-            parts = self.full_cam_class_name.rsplit('.', 1)
+            print "Initializing camera...",
+            if cam_class is None:
+                parts = self.full_cam_class_name.rsplit('.', 1)
+                try:
+                    cam_module = importlib.import_module(parts[0])
+                    cam_class = getattr(cam_module, parts[1])
+
+                except (ImportError, AttributeError) as e:
+                    print_builtin_cameras()
+                    print ('\nSet camera_class to one of them in your ' +
+                        'MAPLE.cfg file.\n')
+                    self.smoothie.close()
+                    raise
+
+            if not issubclass(cam_class, cameras.Camera):
+                print_builtin_cameras()
+                self.smoothie.close()
+                raise ValueError('camera_class must subclass cameras.Camera' +
+                    ', but class {} does not.'.format(class2str(cam_class)))
+
             try:
-                cam_module = importlib.import_module(parts[0])
-                cam_class = getattr(cam_module, parts[1])
-
-            except (ImportError, AttributeError) as e:
+                self.cam = cam_class()
+            except ImportError as e:
                 print_builtin_cameras()
                 print ('\nSet camera_class to one of them in your ' +
                     'MAPLE.cfg file.\n')
+                print 'Missing dependencies for camera_class={}'.format(
+                    class2str(cam_class))
                 self.smoothie.close()
                 raise
-
-        if not issubclass(cam_class, cameras.Camera):
-            print_builtin_cameras()
-            self.smoothie.close()
-            raise ValueError('camera_class must subclass cameras.Camera' +
-                ', but class {} does not.'.format(class2str(cam_class)))
-
-        try:
-            self.cam = cam_class()
-        except ImportError as e:
-            print_builtin_cameras()
-            print ('\nSet camera_class to one of them in your ' +
-                'MAPLE.cfg file.\n')
-            print 'Missing dependencies for camera_class={}'.format(
-                class2str(cam_class))
-            self.smoothie.close()
-            raise
 
         print "done."
 
@@ -145,22 +150,24 @@ class MAPLE:
     # Read in the config, and assign values to the appropriate vars
     def readConfig(self, configFile):
         self.config.read(configFile)
-        self.OutputDir = self.config.get('DEFAULT', 'OutputDir')
-        self.Z1FloorHeight = float(self.config.get('DEFAULT', 'Z1FloorHeight'))
-        self.maxExtents = np.array( [ float(self.config.get('DEFAULT', 'WorkspaceXSize')), float(self.config.get('DEFAULT', 'WorkspaceYSize')),
-                                      float(self.config.get('DEFAULT', 'MaxZ0Depth')),
-                                      float(self.config.get('DEFAULT', 'MaxZ1Depth')),
-                                      float(self.config.get('DEFAULT', 'MaxZ2Depth')) ] )
-        self.Z0Offset = np.array( [ float(self.config.get('DEFAULT', 'Z0OffsetX')), float(self.config.get('DEFAULT', 'Z0OffsetY')),
-                                      float(self.config.get('DEFAULT', 'Z0OffsetZ')), 0.0, 0.0 ] )
-        self.Z2Offset = np.array( [ float(self.config.get('DEFAULT', 'Z2OffsetX')), float(self.config.get('DEFAULT', 'Z2OffsetY')),
-                                      0.0, 0.0, float(self.config.get('DEFAULT', 'Z2OffsetZ')) ] )
-        self.FOV = np.array([ float(self.config.get('DEFAULT', 'HFOV')), float(self.config.get('DEFAULT', 'VFOV')) ])
-        self.StatusURL = self.config.get('DEFAULT', 'StatusURL')
+        section = 'DEFAULT'
+        self.OutputDir = self.config.get(section, 'OutputDir')
+        self.Z1FloorHeight = float(self.config.get(section, 'Z1FloorHeight'))
+        self.maxExtents = np.array( [ float(self.config.get(section, 'WorkspaceXSize')), float(self.config.get(section, 'WorkspaceYSize')),
+                                      float(self.config.get(section, 'MaxZ0Depth')),
+                                      float(self.config.get(section, 'MaxZ1Depth')),
+                                      float(self.config.get(section, 'MaxZ2Depth')) ] )
+        self.Z0Offset = np.array( [ float(self.config.get(section, 'Z0OffsetX')), float(self.config.get(section, 'Z0OffsetY')),
+                                      float(self.config.get(section, 'Z0OffsetZ')), 0.0, 0.0 ] )
+        self.Z2Offset = np.array( [ float(self.config.get(section, 'Z2OffsetX')), float(self.config.get(section, 'Z2OffsetY')),
+                                      0.0, 0.0, float(self.config.get(section, 'Z2OffsetZ')) ] )
+        self.FOV = np.array([ float(self.config.get(section, 'HFOV')), float(self.config.get(section, 'VFOV')) ])
+        self.StatusURL = self.config.get(section, 'StatusURL')
         if ( self.StatusURL != ''):
             urllib2.urlopen(StatusURL + "&" + "st=1")
 
-        self.full_cam_class_name = self.config.get('DEFAULT', 'camera_class')
+        self.full_cam_class_name = self.config.get(section, 'camera_class')
+        self.cam_enabled = self.config.getboolean(section, 'camera_enabled')
 
 
     def release(self):
@@ -169,8 +176,10 @@ class MAPLE:
         self.smallPartManipVac(False)
         self.flyManipAir(False)
         self.smallPartManipAir(False)
-        self.cam.close()
         self.smoothie.close()
+        if self.cam_enabled:
+            self.cam.close()
+
 
     def home(self):
         self.smoothie.sendSyncCmd("G28\n")
@@ -186,7 +195,11 @@ class MAPLE:
 
     # Captures current camera image; returns as numpy array
     def captureImage(self):
-        return self.cam.get_frame()
+        if self.cam_enabled:
+            return self.cam.get_frame()
+        else:
+            raise CamDisabledError('Camera needed for this function.')
+
 
     # Returns current position as array
     def getCurrentPosition(self):
@@ -503,6 +516,9 @@ class MAPLE:
 
     # Captures arena picture at location (Images named consecutively if multiple coordinates specified)
     def SavePicAt(self, Xcoords, Ycoords, IndVect, qualPic=25, Zcam=40, ImgName='errImage.jpg'):
+        if not self.cam_enabled:
+            raise CamDisabledError('Camera needed to save images.')
+
         self.light(True)
         for ImgNum in range(len(Xcoords)):
             self.moveToSpd(pt=[float(Xcoords[ImgNum]), float(Ycoords[ImgNum]), 0, Zcam, 10, 5000])
