@@ -495,7 +495,7 @@ class MAPLE:
         return
 
     def unused_fet(self, state):
-        if (onOff == True):
+        if state:
             cmd = "M50\n"
         else:
             cmd = "M51\n"
