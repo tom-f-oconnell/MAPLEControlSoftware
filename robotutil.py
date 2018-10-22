@@ -61,7 +61,7 @@ class MAPLE:
                       'HFOV': '14.5',
                       'VFOV': '11.25',
                       'StatusURL': '',
-                      'camera_class': 'cameras.PyICIC_Camera'
+                      'camera_class': 'cameras.PyICIC_Camera',
                       'camera_enabled': True
                       }
 
