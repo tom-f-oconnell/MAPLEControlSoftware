@@ -28,3 +28,13 @@
   instructions, especially to the extent that it can not be programmatically
   enforced
 
+- methods in robot class that place workspace (transform to more std. coords? +
+  bounds check) and modules within
+
+- some representation of order of operations? (or use cases too general for this
+  to be useful, because of need for different conditions or whatever?)
+
+- function to generate one possible mounting plate from workspace
+    - also take values from robot config (workspace size?)
+
+- !!! change all onOff to positional arg, to unbreak that valve switching !!!

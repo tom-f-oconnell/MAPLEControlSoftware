@@ -457,6 +457,8 @@ class MAPLE:
     def dwell(self, t):
         while True:
             try:
+                # P is milliseconds *unless* we are in "grbl mode" in which
+                # case, it is interpreted as float seconds.
                 cmd = "G04 P{0}\n".format(t)
                 self.smoothie.sendSyncCmd(cmd)
                 break
@@ -465,47 +467,43 @@ class MAPLE:
         return
 
     # Controls light-circle LED around camera
-    def light(self, onOff = False):
-        if ( onOff == True ):
+    def light(self, state):
+        if state:
             cmd = "M48\n"
         else:
             cmd = "M49\n"
         self.smoothie.sendCmd(cmd)
         return
 
-    def flyManipAir(self, onOff = False):
-        if (onOff == True):
+    def flyManipAir(self, state):
+        if state:
             cmd = "M46\n"
         else:
             cmd = "M47\n"
         self.smoothie.sendCmd(cmd)
-        return
 
     # Controls negative air pressure out of fly manipulating end effector
-    def flyManipVac(self, onOff = False):       # rerouted pins to smallPart vacuum
-        if (onOff == True):
+    def flyManipVac(self, state):
+        if state:
             cmd = "M44\n"
         else:
             cmd = "M45\n"
         self.smoothie.sendCmd(cmd)
-        return
 
-    def smallPartManipAir(self, onOff = False):
-        if (onOff == True):
+    def smallPartManipAir(self, state):
+        if state:
             cmd = "M42\n"
         else:
             cmd = "M43\n"
         self.smoothie.sendCmd(cmd)
-        return
 
     # Controls negative air pressure out of part manipulating end effector (Holds part)
-    def smallPartManipVac(self, onOff = False):     # rerouted to fly vacuum
-        if (onOff == True):
+    def smallPartManipVac(self, state):
+        if state:
             cmd = "M40\n"
         else:
             cmd = "M41\n"
         self.smoothie.sendCmd(cmd)
-        return
 
     def unused_fet(self, state):
         if state:
