@@ -1,0 +1,30 @@
+
+- consistent interface for setting placement + bounds checking modules in
+  workspace
+  - let each module define required positions of each effector within module
+    coord sys, then have this interface transform for placement
+  - define module extents (bounding box? polygon?)
+
+
+- source / sink classes
+    - morgue subclassing sink
+    - maybe both subclassing some "Module" class for bounds checking?
+
+- whether or not we refactor s.t. workspace modules are classes, should probably
+  make it so IO related stuff isn't done automatically on import, but explicitly
+  by some init() type function
+    - which could be a method of the parent class
+
+
+- fn to generate config for things you'd otherwise need to measure upon hardware
+  changes?
+    - is it just max Z for each axis?
+
+
+- make fov config params not required if camera is disabled (if they even are
+  now)
+
+- make expectation / module/experiment design workflow more clear in
+  instructions, especially to the extent that it can not be programmatically
+  enforced
+
