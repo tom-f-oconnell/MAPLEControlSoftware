@@ -7,6 +7,7 @@
 import os.path
 import time
 import warnings
+import atexit
 
 import numpy as np
 import cv2
@@ -38,9 +39,14 @@ def printPosition(robot, img):
 
 # And pass in the ZAxisBaseAddress here
 robot = robotutil.MAPLE(configFile)
-# TODO some reason we didn't want to call M999 and set two valve states here?
+# TODO maybe don't home / set valves in constructor, to not surprise people
 
-# robot.home()
+def cleanup():
+    cv2.destroyAllWindows()
+    robot.release()
+
+atexit.register(cleanup)
+
 
 if robot.cam_enabled:
     robot.light(True)
@@ -232,5 +238,4 @@ Modifier keys:
         if (( key != -1 ) and ( key != 27) ):
             print "Unknown keypress:", key
 
-cv2.destroyAllWindows()
-robot.release()
+

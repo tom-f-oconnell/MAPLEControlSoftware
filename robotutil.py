@@ -140,6 +140,7 @@ class MAPLE:
         self.currentPosition = self.getCurrentPosition()
         print "Robot initialized."
 
+        # TODO need newline???
         self.smoothie.sendCmd("M999")
         self.flyManipAir(False)
         self.smallPartManipVac(False)
@@ -176,7 +177,11 @@ class MAPLE:
         self.smallPartManipVac(False)
         self.flyManipAir(False)
         self.smallPartManipAir(False)
+
+        # Turns off the stepper motors.
+        self.smoothie.sendSyncCmd('M84\n')
         self.smoothie.close()
+
         if self.cam_enabled:
             self.cam.close()
 
