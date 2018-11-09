@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 ##
 ## This copyrighted software is distributed under the GPL v2.0 license.
 ## See the LICENSE file for more details.
