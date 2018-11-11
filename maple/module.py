@@ -241,6 +241,10 @@ class Morgue(Sink):
 
         Assumes fly is already in fly manipulator.
         """
+        if self.robot is None:
+            print('Putting fly in morgue.')
+            return
+
         # TODO check we are already over morgue max z? when to pick max z?
 
         # could also pick a point, in the morgue, closer than the center
@@ -295,6 +299,10 @@ class FlyPlate(Storage):
               to_first_well, well_spacing)
 
     def get(self, xy, ij):
+        if self.robot is None:
+            print('Getting fly from plate {} ({})'.format(ij, xy))
+            return
+
         # TODO any particular reason air is turned on in cft.homeWithdraw?
         # pinswap thing? mistake?
         self.robot.flyManipVac(True)
@@ -309,6 +317,10 @@ class FlyPlate(Storage):
         """
         Assuming fly manipulator vacuum is already on and air is off.
         """
+        if self.robot is None:
+            print('Putting fly in plate {} ({})'.format(ij, xy))
+            return
+
         self.robot.moveXY(xy)
         # TODO TODO lower to working height
         # TODO could also experiment w/ just leaving vac on
