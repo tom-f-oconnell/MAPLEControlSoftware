@@ -77,6 +77,11 @@ class Source(Module):
         """
         pass
 
+    def has_flies(self):
+        """
+        """
+        return not self.is_empty()
+
     # TODO abstract method on some kind of generator of the actions?
 
 
@@ -125,13 +130,28 @@ class Array(Source, Sink):
         self.anchor_spacing = anchor_spacing
         self.full = np.full((self.n_cols, self.n_rows), loaded)
         
+    # TODO maybe use optional args?
     @abstractmethod
-    def get_indices(self, i, j):
+    def get(self, xy, ij):
         pass
 
     @abstractmethod
-    def put_indices(self, i, j):
+    def put(self, xy, ij):
         pass
+
+    # TODO possible to make it so they can implement either *_xy methods, or
+    # override indices methods?
+
+    def put_indices(self, i, j):
+        xy = self.anchor_center(i, j)
+        self.put(self, xy, (i,j))
+        self.full[i, j] = True
+
+    def get_indices(self, i, j):
+        # TODO rename to _position / coords / xy?
+        x, y = self.anchor_center(i, j)
+        self.get(self, xy, (i,j))
+        self.full[i, j] = False
 
     def anchor_center(self, i, j):
         """
@@ -171,22 +191,26 @@ class Array(Source, Sink):
         coords = np.argwhere(mask)
         return coords[np.random.choice(len(coords))]
 
-    def get(self):
+    def get_next(self):
         # TODO time added order? (depends on how plate is being loaded...)
         i, j = self.next_anchor(True)
         self.get_indices(i, j)
+        return i, j
 
     def get_random(self):
         i, j = self.random_anchor(True)
         self.get_indices(i, j)
+        return i, j
 
-    def put(self):
+    def put_next(self):
         i, j = self.next_anchor(False)
         self.put_indices(i, j)
+        return i, j
 
     def put_random(self):
         i, j = self.random_anchor(False)
         self.put_indices(i, j)
+        return i, j
 
     def is_full(self):
         return np.sum(self.full) == self.full.size
@@ -202,11 +226,16 @@ class Morgue(Sink):
     """A dish with soapy water to discard used flies.
     """
     def __init__(self, robot, offset, diameter=54.0, height=14.75):
+        """
+        Default `diameter` and `height` are for the smaller part of a Petri
+        dish.
+        """
         extent = (diameter, diameter, height)
         flymanip_working_height = 18
         super(Morgue, self).__init__(robot, offset, extent,
               flymanip_working_height)
        
+    # change name to match Array method names? optional args to unify?
     def put(self):
         """Ejects fly into the center of the morgue.
 
@@ -227,6 +256,7 @@ class Morgue(Sink):
         self.robot.dwell(5)
         self.robot.flyManipAir(False)
 
+    # keep this?
     def put_random(self):
         self.put()
 
@@ -264,31 +294,27 @@ class FlyPlate(Storage):
               flymanip_working_height, n_cols, n_rows,
               to_first_well, well_spacing)
 
-    def get_indices(self, i, j):
-        # TODO rename to _position / coords / xy
-        xy = self.anchor_center(i, j)
+    def get(self, xy, ij):
         # TODO any particular reason air is turned on in cft.homeWithdraw?
         # pinswap thing? mistake?
         self.robot.flyManipVac(True)
         self.robot.flyManipAir(False)
         self.robot.moveXY(xy)
+        # TODO TODO lower to working height
         # TODO maybe copy vacuum burst thing in cft
         # TODO change dwell to dwell_s and dwell_ms
         self.robot.dwell(3)
-        # TODO check
-        self.full[i, j] = False
 
-    def put_indices(self, i, j):
+    def put(self, xy, ij):
         """
         Assuming fly manipulator vacuum is already on and air is off.
         """
-        xy = self.anchor_center(i, j)
         self.robot.moveXY(xy)
+        # TODO TODO lower to working height
         # TODO could also experiment w/ just leaving vac on
         self.robot.flyManipVac(False)
         self.robot.flyManipAir(True)
         self.robot.dwell(3)
-        # TODO TODO move this to call to super? (in case want to change impl)
-        self.full[i, j] = True
-
+        # reason not to turn air off?
+        self.robot.flyManipAir(False)
 
