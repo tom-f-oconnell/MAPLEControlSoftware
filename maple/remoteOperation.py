@@ -57,7 +57,7 @@ def notifyUserFail(robot, arenanum, mailfrom, attPic=0, qualPic=25, attImg=1, de
         robot.light(True)
         time.sleep(0.2)
         robot.write_jpg(arenanum + 'errImage.jpg', 1, quality=qualPic)
-        robot.dwell(50)
+        robot.dwell_ms(50)
         robot.light(False)
         msg['Subject'] = 'Failure: Arena ' + arenanum + ' Withdraw'
         msg = MIMEMultipart()

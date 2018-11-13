@@ -56,7 +56,7 @@ flyCount = 0
 while flyCount < 96:
 
     # Move Z to transit height
-    robot.dwell(1)
+    robot.dwell_ms(1)
     robot.moveZ(transitZ)
 
     # Move XY to dispenser
@@ -64,11 +64,11 @@ while flyCount < 96:
     robot.moveXY(dispenserXY)
 
     # Move Z to dispenser
-    robot.dwell(1)
+    robot.dwell_ms(1)
     robot.moveZ(dispenserZ)
 
     # Enable vacuum
-    robot.dwell(1)
+    robot.dwell_ms(1)
     robot.flyManipVac(True)
 
     # Dispense fly
@@ -86,7 +86,7 @@ while flyCount < 96:
     robot.moveXY(plateXY)
 
     # Move Z to deposity fly height
-    robot.dwell(1)
+    robot.dwell_ms(1)
     robot.moveZ(plateZ)
 
     # Release fly

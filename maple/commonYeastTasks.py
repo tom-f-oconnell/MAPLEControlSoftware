@@ -13,16 +13,16 @@ def applicatorEquip(robot, YeastApplicatorPlate, ID, applicatorZ=22.5, vacDur=50
     coordX = YeastApplicatorPlate.getApplicatorCoords(ID)[0]
     coordY = YeastApplicatorPlate.getApplicatorCoords(ID)[1]
     robot.moveToSpd(pt=[float(coordX), float(coordY), 0, 0, 0], spd=5000)
-    robot.dwell(t=1)
+    robot.dwell_ms(1)
     robot.smallPartManipVac(True)
-    robot.dwell(t=1)
+    robot.dwell_ms(1)
     trylower = robot.lowerCare(z=applicatorZ, descendZ=5, retreatZ=5)      # lower onto applicator ID
     if trylower['limit'] == 1:
-        robot.dwell(10)
+        robot.dwell_ms(10)
         robot.homeZ2()
         for tries in range(0,1):
             robot.moveToSpd(pt=[float(coordX)-(tries+1/2), float(coordY), 0, 0, applicatorZ-19], spd=2000)
-            robot.dwell(10)
+            robot.dwell_ms(10)
             trylower = robot.lowerCare(z=applicatorZ, descendZ=10, retreatZ=10)
             if trylower['limit'] == 0:
                 break
@@ -31,7 +31,7 @@ def applicatorEquip(robot, YeastApplicatorPlate, ID, applicatorZ=22.5, vacDur=50
     if trylower['limit'] == 1:
         for tries in range(0,1):
             robot.moveToSpd(pt=[float(coordX)+(tries+1/2), float(coordY), 0, 0, applicatorZ-19], spd=2000)
-            robot.dwell(10)
+            robot.dwell_ms(10)
             trylower = robot.lowerCare(z=applicatorZ, descendZ=10, retreatZ=10)
             if trylower['limit'] == 0:
                 break
@@ -40,7 +40,7 @@ def applicatorEquip(robot, YeastApplicatorPlate, ID, applicatorZ=22.5, vacDur=50
     if trylower['limit'] == 1:
         for tries in range(0,1):
             robot.moveToSpd(pt=[float(coordX), float(coordY)-(tries+1/2), 0, 0, applicatorZ-19], spd=2000)
-            robot.dwell(10)
+            robot.dwell_ms(10)
             trylower = robot.lowerCare(z=applicatorZ, descendZ=10, retreatZ=10)
             if trylower['limit'] == 0:
                 break
@@ -49,33 +49,33 @@ def applicatorEquip(robot, YeastApplicatorPlate, ID, applicatorZ=22.5, vacDur=50
     if trylower['limit'] == 1:
         for tries in range(0,1):
             robot.moveToSpd(pt=[float(coordX), float(coordY)+(tries+1/2), 0, 0, applicatorZ-19], spd=2000)
-            robot.dwell(10)
+            robot.dwell_ms(10)
             trylower = robot.lowerCare(z=applicatorZ, descendZ=10, retreatZ=10)
             if trylower['limit'] == 0:
                 break
             else:
                 robot.homeZ2()
-    robot.dwell(t=vacDur)
+    robot.dwell_ms(vacDur)
     robot.homeZ2()        # retrieve applicator
     robot.moveToSpd(pt=[415, 247, 0, 0, 0, 0], spd=3000)       # move safely into neutral position
 
 # Discards applicator into applicator discard module
 def applicatorDiscard(robot, discardX= 438, discardY = 116, discardZ=50, airBurst=2, airDur=1000):
     robot.moveToSpd(pt=[float(discardX), float(discardY), 0, 0, 0], spd=5000)
-    robot.dwell(t=1)
+    robot.dwell_ms(1)
     robot.lowerCare(z=discardZ, descendZ=10, retreatZ=10)      # lower into discard receptacle
     robot.smallPartManipVac(False)
     for b in range(0,airBurst):
         robot.flyManipAir(True)
-        robot.dwell(t=airDur)
+        robot.dwell_ms(airDur)
         robot.flyManipAir(False)
-        robot.dwell(t=airDur/10)
+        robot.dwell_ms(airDur/10)
     robot.moveRel(pt=[0, 0, 0, 0, -discardZ])        # 
 
 # Tests whether applicator is loaded by engaging limit switch
 def applicatorTest(robot, testX=415, testY=255, testZ=13):
     robot.moveToSpd(pt=[float(testX), float(testY), 0, 0, 0], spd=5000)
-    robot.dwell(t=1)
+    robot.dwell_ms(1)
     test = robot.lowerCare(z=testZ, descendZ=10, retreatZ=10)      # test whether applicator is equipped
     robot.homeZ2()
     if test['limit'] == 1:
@@ -90,11 +90,11 @@ def lidWithdraw(robot, YeastArena, ID, adjZ=0):
     coordY = YeastArena.getSPCoords(ID)[1]
     coordZ = YeastArena.SPz+adjZ
     robot.moveToSpd(pt=[float(coordX), float(coordY), 0, 0, 0], spd=5000)
-    robot.dwell(1)
+    robot.dwell_ms(1)
     robot.moveToSpd(pt=[float(coordX), float(coordY), coordZ, 0, 0], spd=3000)
-    robot.dwell(1)
+    robot.dwell_ms(1)
     robot.flyManipVac(True)
-    robot.dwell(300)
+    robot.dwell_ms(300)
     robot.moveRel(pt=[0, 0, -coordZ+10, 0, 0])      # so lid does not fall off
 
 # Engages object manipulator to withdraw lid on arena ID
@@ -103,14 +103,14 @@ def lidPlace(robot, YeastArena, ID):
     coordY = YeastArena.getSPCoords(ID)[1]
     coordZ = YeastArena.SPz
     robot.moveToSpd(pt=[float(coordX), float(coordY), 10, 0, 0], spd=5000)
-    robot.dwell(1)
+    robot.dwell_ms(1)
     robot.moveToSpd(pt=[float(coordX), float(coordY), coordZ-1, 0, 0], spd=4000)
-    robot.dwell(1)
+    robot.dwell_ms(1)
     robot.flyManipVac(False)
     robot.smallPartManipAir(True)
-    robot.dwell(100)
+    robot.dwell_ms(100)
     robot.moveRel(pt=[0, 0, -coordZ+1, 0, 0])
-    robot.dwell(1)
+    robot.dwell_ms(1)
     robot.smallPartManipAir(False)
 
 # Engages loaded applicator to test for successful lid withdrawal/placement. Care to use sterile applicator
@@ -119,7 +119,7 @@ def lidTest(robot, YeastArena, ID):
     coordY = YeastArena.getArenaCoords(ID)[1]
     coordZ = YeastArena.SPz-20
     robot.moveToSpd(pt=[float(coordX), float(coordY), 10, 0, 0], spd=5000)
-    robot.dwell(1)
+    robot.dwell_ms(1)
     test = robot.lowerCare(z=coordZ+1, descendZ=10, retreatZ=10)      # test whether lid is present
     robot.homeZ2()
     if test['limit'] == 1:
@@ -143,7 +143,7 @@ def colonyProbe(robot, YeastArena, ID, colonyX, colonyY, probeT=100, skipAnchor=
     spZ = YeastArena.SPz
     if skipAnchor == False:
         robot.moveToSpd(pt=[float(arenaX-10), float(arenaY-10), 10, 0, 0], spd=5000)
-        robot.dwell(1)
+        robot.dwell_ms(1)
     CurCoord = robot.getCurrentPosition()
     robot.moveToSpd(pt=[float(colonyX), CurCoord[1], 10, 0, CurCoord[4]], spd=3000)
     time.sleep(0.1)
@@ -158,9 +158,9 @@ def colonyProbe(robot, YeastArena, ID, colonyX, colonyY, probeT=100, skipAnchor=
             robot.homeZ2()
             print 'Check yeast arena', ID, 'lid.'
             return trylower
-        robot.dwell(100)
+        robot.dwell_ms(100)
     reset = robot.lowerCare(z=agarZ, descendZ=5, retreatZ=5)       # move applicator towards agar surface
-    robot.dwell(probeT)
+    robot.dwell_ms(probeT)
     if reset['limit'] ==1:
         robot.homeZ2()
     else:
@@ -242,7 +242,7 @@ def detectColony(robot, YeastArena, ID):
     coordY = YeastArena.getCamCoords(ID)[1]
     coordZ = YeastArena.camsharpz
     robot.moveToSpd(pt=[float(coordX), float(coordY), 10, coordZ, 0], spd=5000)
-    robot.dwell(1)
+    robot.dwell_ms(1)
     robot.light(True)
     time.sleep(0.2)
     img = robot.captureImage()

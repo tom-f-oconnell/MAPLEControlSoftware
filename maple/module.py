@@ -118,9 +118,9 @@ class Sink(Module):
 # TODO need to do more than have some abstractmethods to prevent instantiation?
 class Array(Source, Sink):
     def __init__(self, robot, offset, extent, flymanip_working_height,
-            n_cols, n_rows, to_first_anchor, anchor_spacing):
+            n_cols, n_rows, to_first_anchor, anchor_spacing, loaded=False):
 
-        super(Storage, self).__init__(robot, offset, extent,
+        super(Array, self).__init__(robot, offset, extent,
             flymanip_working_height)
 
         self.n_cols = n_cols
@@ -144,21 +144,21 @@ class Array(Source, Sink):
 
     def put_indices(self, i, j):
         xy = self.anchor_center(i, j)
-        self.put(self, xy, (i,j))
+        self.put(xy, (i,j))
         self.full[i, j] = True
 
     def get_indices(self, i, j):
         # TODO rename to _position / coords / xy?
-        x, y = self.anchor_center(i, j)
-        self.get(self, xy, (i,j))
+        xy = self.anchor_center(i, j)
+        self.get(xy, (i,j))
         self.full[i, j] = False
 
     def anchor_center(self, i, j):
         """
         Override if necessary.
         """
-        return (offset[:2] + self.to_first_anchor +
-            [i*anchor_spacing, j*anchor_spacing])
+        return (self.offset[:2] + self.to_first_anchor +
+            [i*self.anchor_spacing, j*self.anchor_spacing])
 
     # TODO maybe put in a fn to check bounds of offsets + paths
     # TODO also let this be a function that generates positions in order?
@@ -241,9 +241,9 @@ class Morgue(Sink):
 
         Assumes fly is already in fly manipulator.
         """
-        if self.robot is None:
-            print('Putting fly in morgue.')
-            return
+        #if self.robot is None:
+        print('Putting fly in morgue.')
+        #return
 
         # TODO check we are already over morgue max z? when to pick max z?
 
@@ -257,7 +257,7 @@ class Morgue(Sink):
         # time...
         # TODO determine whether this is in milliseconds or seconds, and
         # document
-        self.robot.dwell(5)
+        self.robot.dwell_ms(2000)
         self.robot.flyManipAir(False)
 
     # keep this?
@@ -268,10 +268,7 @@ class Morgue(Sink):
         return False
 
 
-# TODO TODO TODO replace Storage w/ Array superclass, refactor below to share
-# most (just get/put procedures around anchors + dimensions should be diff,
-# right?)
-class FlyPlate(Storage):
+class FlyPlate(Array):
     """Model of 96-well fly storage plate made by FlySorter.
     """
     def __init__(self, robot, offset, loaded=True):
@@ -296,12 +293,13 @@ class FlyPlate(Storage):
 
         super(FlyPlate, self).__init__(robot, offset, extent,
               flymanip_working_height, n_cols, n_rows,
-              to_first_well, well_spacing)
+              to_first_well, well_spacing, loaded=loaded)
 
     def get(self, xy, ij):
-        if self.robot is None:
-            print('Getting fly from plate {} ({})'.format(ij, xy))
-            return
+        # TODO TODO just add a verbose flag, to print when using on a real robot
+        #if self.robot is None:
+        print('Getting fly from plate {} ({})'.format(ij, xy))
+        #    return
 
         # TODO any particular reason air is turned on in cft.homeWithdraw?
         # pinswap thing? mistake?
@@ -311,22 +309,22 @@ class FlyPlate(Storage):
         # TODO TODO lower to working height
         # TODO maybe copy vacuum burst thing in cft
         # TODO change dwell to dwell_s and dwell_ms
-        self.robot.dwell(3)
+        self.robot.dwell_ms(3000)
 
     def put(self, xy, ij):
         """
         Assuming fly manipulator vacuum is already on and air is off.
         """
-        if self.robot is None:
-            print('Putting fly in plate {} ({})'.format(ij, xy))
-            return
+        #if self.robot is None:
+        print('Putting fly in plate {} ({})'.format(ij, xy))
+        #    return
 
         self.robot.moveXY(xy)
         # TODO TODO lower to working height
         # TODO could also experiment w/ just leaving vac on
         self.robot.flyManipVac(False)
         self.robot.flyManipAir(True)
-        self.robot.dwell(3)
+        self.robot.dwell_ms(3000)
         # reason not to turn air off?
         self.robot.flyManipAir(False)
 

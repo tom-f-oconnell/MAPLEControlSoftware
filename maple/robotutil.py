@@ -14,6 +14,7 @@ import ConfigParser
 import urllib2
 import importlib
 import pyclbr
+import atexit
 
 import numpy as np
 import cv2
@@ -136,6 +137,8 @@ class MAPLE:
                 raise
 
         print "done."
+
+        atexit.register(self.release)
 
         self.currentPosition = self.getCurrentPosition()
         print "Robot initialized."
@@ -267,7 +270,7 @@ class MAPLE:
             return
         cmd = "G01 Z{0[2]} A{0[3]} B{0[4]}\n".format(pt)
         self.smoothie.sendSyncCmd(cmd)
-        self.dwell(1)
+        self.dwell_ms(1)
         self.currentPosition = pt
         return
 
@@ -281,7 +284,7 @@ class MAPLE:
             return
         cmd = "G01 X{0[0]} Y{0[1]} Z{0[2]} A{0[3]} B{0[4]}\n".format(pt)
         self.smoothie.sendSyncCmd(cmd)
-        self.dwell(1)
+        self.dwell_ms(1)
         self.currentPosition = pt
         return
 
@@ -300,7 +303,7 @@ class MAPLE:
         cmd = "G01 X{0[0]} Y{0[1]} Z{0[2]} A{0[3]} B{0[4]} F{1}\n".format(pt, spd)
         self.smoothie.sendSyncCmd(cmd)
 
-        self.dwell(1)
+        self.dwell_ms(1)
 
         # Reset speed to old value
         self.smoothie.sendSyncCmd("M121\n")
@@ -342,16 +345,16 @@ class MAPLE:
         for i in range(startpos, endpos+1, step):       # loop that performs the circular movement and lowering only on iteration 1
             if careful != 1:
                 self.moveXYSpd(deg[i], spd)
-                self.dwell(rest)
+                self.dwell_ms(rest)
                 if i == startpos:
-                    self.dwell(10)  # just a tiny buffer before lowering
+                    self.dwell_ms(10)  # just a tiny buffer before lowering
                 XYpos = self.getCurrentPosition()
                 if i == startpos and (XYpos[0] - deg[startpos,0] <= 1) and (XYpos[1] - deg[startpos,1] <= 1):   # only lower on first iteration and if degrees match
-                    self.dwell(10)
+                    self.dwell_ms(10)
                     self.moveZ(pt=[XYpos[0],XYpos[1],0,0,z-descendZ]) # lowers to 9 units above detected opening
-                    self.dwell(1) # give time before the loop
+                    self.dwell_ms(1) # give time before the loop
                     for j in range(1, descendZ+2):     #carefully lower into opening and start at 0 just to also check current limit
-                        self.dwell(1)
+                        self.dwell_ms(1)
                         self.moveZ(pt=[XYpos[0],XYpos[1],0,0,(z-descendZ)+j])
                         careful = self.getLimit()
                         if careful == 1:
@@ -363,7 +366,7 @@ class MAPLE:
         if careful != 1 and full == True:
             self.moveXYSpd(deg[endpos], spd)
             XYpos = deg[endpos]
-            self.dwell(1)
+            self.dwell_ms(1)
         elif careful != 0:
             self.moveZ(pt=[XYpos[0],XYpos[1],0,0,retreatZ])
         return {'endXY':XYpos, 'endDeg':endpos, 'oldMid': mid, 'limit': careful, 'startDeg': startpos}
@@ -414,7 +417,7 @@ class MAPLE:
         posbegin = self.getCurrentPosition()
         self.moveZ(pt=[posbegin[0],posbegin[1],10,0,z-descendZ])
         for i in range(1, descendZ+2):
-            self.dwell(1)
+            self.dwell_ms(1)
             self.moveRel(pt=[0,0,0,0,1])
             careful = self.getLimit()
             if careful == 1:
@@ -426,7 +429,7 @@ class MAPLE:
     # Moves to coordinates and returns whether movement was detected
     def detectMotionAt(self, camcoordX, camcoordY, camcoordZ):
         self.moveToSpd(pt=[float(camcoordX), float(camcoordY), 0, camcoordZ, 10], spd=5000)
-        self.dwell(10)
+        self.dwell_ms(10)
         flyremaining = self.detectMotion( minpx=40, maxpx=2000)
         return flyremaining
 
@@ -459,17 +462,28 @@ class MAPLE:
         else:
             return True
 
-    def dwell(self, t):
+    def dwell_ms(self, milliseconds):
+        """Dwell (do nothing) for the specified number of milliseconds.
+        """
+        # TODO why have this retry logic at all? why outside of flysorterserial?
+        # why only for this command?
+        cmd = "G04 P{0}\n".format(milliseconds)
+        self.smoothie.sendSyncCmd(cmd)
+        '''
         while True:
             try:
                 # P is milliseconds *unless* we are in "grbl mode" in which
                 # case, it is interpreted as float seconds.
-                cmd = "G04 P{0}\n".format(t)
+                # We are assuming the Smoothieware is not in this mode.
+                cmd = "G04 P{0}\n".format(milliseconds)
                 self.smoothie.sendSyncCmd(cmd)
                 break
+
+            # TODO at the very least, catch a specific exception
             except:
-                print 'Error: retrying to send dwell command'
-        return
+                print 'Error: retrying to send dwell_ms command'
+        '''
+
 
     # Controls light-circle LED around camera
     def light(self, state):
@@ -525,10 +539,10 @@ class MAPLE:
         self.light(True)
         for ImgNum in range(len(Xcoords)):
             self.moveToSpd(pt=[float(Xcoords[ImgNum]), float(Ycoords[ImgNum]), 0, Zcam, 10, 5000])
-            self.dwell(50)      # Put higher to reduce effect of motion-caused rig trembling on picture
+            self.dwell_ms(50)      # Put higher to reduce effect of motion-caused rig trembling on picture
             curInd = str(IndVect[ImgNum])
             self.cam.write_jpg(curInd + 'errImage.jpg', quality=qualPic)
-            self.dwell(10)
+            self.dwell_ms(10)
         self.light(False)
 
     # Finds immobile fly on white surface (CO2 board)
@@ -563,7 +577,7 @@ class MAPLE:
         self.light(True)
         time.sleep(0.2)
         image1 = self.captureImage()
-        self.dwell(800)
+        self.dwell_ms(800)
         image2 = self.captureImage()
         self.light(False)
         image1 = cv2.resize(image1, (1280, 960))

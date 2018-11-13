@@ -30,7 +30,7 @@ test = 1
 colonyX, colonyY = cyt.detectColony(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'], 2)	# returns viable source colony coordinates (in camera field of view)
 while test == 1:
 	cyt.lidWithdraw(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'],2)		# withdraws lid, tests whether lid has been withdrawn
-	robot.dwell(10)
+	robot.dwell_ms(10)
 	test = cyt.lidTest(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'],2)
 cyt.colonyProbe(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'], 2, colonyX=309+colonyX, colonyY=28+colonyY, skipAnchor=False, agarZ=40)	# picks source colony
 robot.homeZ2()	# withdraws yeast applicator
@@ -55,7 +55,7 @@ test = 1
 colonyX, colonyY = cyt.detectColony(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'], 2)
 while test == 1:
 	cyt.lidWithdraw(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'],2)
-	robot.dwell(10)
+	robot.dwell_ms(10)
 	test = cyt.lidTest(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'],2)
 cyt.colonyProbe(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'], 2, colonyX=309+colonyX, colonyY=28+colonyY, skipAnchor=False, agarZ=40)
 robot.homeZ2()
@@ -79,7 +79,7 @@ test = 1
 colonyX, colonyY = cyt.detectColony(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'], 2)
 while test == 1:
 	cyt.lidWithdraw(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'],2)
-	robot.dwell(10)
+	robot.dwell_ms(10)
 	test = cyt.lidTest(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'],2)
 cyt.colonyProbe(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'], 2, colonyX=309+colonyX, colonyY=28+colonyY, skipAnchor=False, agarZ=40)
 robot.homeZ2()
@@ -103,7 +103,7 @@ test = 1
 colonyX, colonyY = cyt.detectColony(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'], 2)
 while test == 1:
 	cyt.lidWithdraw(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'],2)
-	robot.dwell(10)
+	robot.dwell_ms(10)
 	test = cyt.lidTest(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'],2)
 cyt.colonyProbe(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'], 2, colonyX=309+colonyX, colonyY=28+colonyY, skipAnchor=False, agarZ=40)
 robot.homeZ2()
@@ -127,7 +127,7 @@ test = 1
 colonyX, colonyY = cyt.detectColony(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'], 2)
 while test == 1:
 	cyt.lidWithdraw(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'],2)
-	robot.dwell(10)
+	robot.dwell_ms(10)
 	test = cyt.lidTest(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'],2)
 cyt.colonyProbe(robot, ExampleYeastWorkspace.YeastWorkspace['yeastArena3x3'], 2, colonyX=309+colonyX, colonyY=28+colonyY, skipAnchor=False, agarZ=40)
 robot.homeZ2()

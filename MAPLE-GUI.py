@@ -7,15 +7,15 @@
 import os.path
 import time
 import warnings
-import atexit
 
 import numpy as np
 import cv2
 
-import robotutil
+import maple.robotutil
 
 
-configFile = "MAPLE.cfg"
+# TODO better way?
+configFile = os.path.join(maple.__path__[0], 'MAPLE.cfg')
 
 imgSize = ( 864, 648 )
 crosshairPts = (( 422, 324 ), ( 442, 324 ), ( 432, 314 ), ( 432, 334 ))
@@ -38,15 +38,8 @@ def printPosition(robot, img):
     cv2.line(img, crosshairPts[2], crosshairPts[3], (255, 255, 255), 1)
 
 # And pass in the ZAxisBaseAddress here
-robot = robotutil.MAPLE(configFile)
+robot = maple.robotutil.MAPLE(configFile)
 # TODO maybe don't home / set valves in constructor, to not surprise people
-
-def cleanup():
-    cv2.destroyAllWindows()
-    robot.release()
-
-atexit.register(cleanup)
-
 
 if robot.cam_enabled:
     robot.light(True)

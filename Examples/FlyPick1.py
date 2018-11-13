@@ -79,9 +79,9 @@ for imgPt in Workspace2.Workspace2['pad1'].imagePoints:
         break
     print "Image point:", imgPt
     robot.moveXY(imgPt)
-    robot.dwell(10)
+    robot.dwell_ms(10)
     img = robot.captureImage()
-    robot.dwell(100)
+    robot.dwell_ms(100)
     flyPoint = robot.findFly(img)
     while (( flyPoint is not None ) and (mazeCounter <= Workspace2.Workspace2['maze1'].getNumMazes()) ):
         # flyPoint is actually an offset from the current position (imgPt)
@@ -92,11 +92,11 @@ for imgPt in Workspace2.Workspace2['pad1'].imagePoints:
         flyXYPoint = imgPt + flyPoint + robot.Z2Offset[0:2]
         robot.moveXY(flyXYPoint-xyOffset)
         robot.moveXY(flyXYPoint)
-        robot.dwell(1)
+        robot.dwell_ms(1)
         robot.moveZ(ZGrabFly)
         robot.flyManipVac(True)
         time.sleep(0.5)
-        robot.dwell(1)
+        robot.dwell_ms(1)
         robot.moveZ(ZImagePad)
 
         # Move it to the next available maze
@@ -105,18 +105,18 @@ for imgPt in Workspace2.Workspace2['pad1'].imagePoints:
         mazePt = Workspace2.Workspace2['maze1'].getMaze(mazeCounter) + robot.Z0Offset[0:2]
         robot.moveXY(mazePt-xyOffset)
         robot.moveXY(mazePt)
-        robot.dwell(1)
+        robot.dwell_ms(1)
         robot.smallPartManipVac(True)
         robot.moveZ(ZLid)
         time.sleep(0.5)
-        robot.dwell(1)
+        robot.dwell_ms(1)
         robot.moveZ(ZImagePad)
 
         # Now deposit the fly
         mazePt = Workspace2.Workspace2['maze1'].getMaze(mazeCounter) + robot.Z2Offset[0:2]
         robot.moveXY(mazePt-xyOffset)
         robot.moveXY(mazePt)
-        robot.dwell(1)
+        robot.dwell_ms(1)
         robot.moveZ(ZDepositFly)
         robot.flyManipVac(False)
         robot.flyManipAir(True)
@@ -129,7 +129,7 @@ for imgPt in Workspace2.Workspace2['pad1'].imagePoints:
         mazePt = Workspace2.Workspace2['maze1'].getMaze(mazeCounter) + robot.Z0Offset[0:2]
         robot.moveXY(mazePt-xyOffset)
         robot.moveXY(mazePt)
-        robot.dwell(1)
+        robot.dwell_ms(1)
         robot.moveZ(ZLid)
         robot.smallPartManipVac(False)
         robot.smallPartManipAir(True)
@@ -141,7 +141,7 @@ for imgPt in Workspace2.Workspace2['pad1'].imagePoints:
         robot.moveZ(ZImagePad)
         print "Image point:", imgPt
         robot.moveXY(imgPt)
-        robot.dwell(10)
+        robot.dwell_ms(10)
         img = robot.captureImage()
         flyPoint = robot.findFly(img)
 

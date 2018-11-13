@@ -9,3 +9,4 @@ curImage*.jpg
 circlelid*.png
 debug*.png
 debug*.jpg
+*.egg-info/
