@@ -151,8 +151,9 @@ class MAPLE:
         self.home()
 
 
-    # Read in the config, and assign values to the appropriate vars
     def readConfig(self, configFile):
+        """Read in the config, and assign values to the appropriate vars
+        """
         self.config.read(configFile)
         section = 'DEFAULT'
         self.OutputDir = self.config.get(section, 'OutputDir')
@@ -194,24 +195,31 @@ class MAPLE:
         self.smoothie.sendSyncCmd("G01 F{0}\n".format(self.travelSpeed))
         self.currentPosition = np.array([0., 0., 0., 0., 0.])
 
-    # Only homes end effectors; Faster than regular home()
+
     def homeZ2(self):
+        """Only homes end effectors; Faster than regular home()
+        """
         self.smoothie.sendSyncCmd("G28 B0\n")
+
 
     def homeZ0(self):
         self.smoothie.sendSyncCmd("G28 Z0\n")
 
-    # Captures current camera image; returns as numpy array
+
     def captureImage(self):
+        """Captures current camera image; returns as numpy array
+        """
         if self.cam_enabled:
             return self.cam.get_frame()
         else:
             raise CamDisabledError('Camera needed for this function.')
 
 
-    # Returns current position as array
     def getCurrentPosition(self):
-        # M114.2 returns string like: "ok MCS: X:0.0000 Y:0.0000 Z:0.0000 A:0.0000 B:0.0000"
+        """Returns current position as array
+        """
+        # M114.2 returns string like:
+        # "ok MCS: X:0.0000 Y:0.0000 Z:0.0000 A:0.0000 B:0.0000"
         while True:
             try:
                 positions = self.smoothie.sendCmdGetReply("M114.2\n").split(' ')
@@ -226,26 +234,31 @@ class MAPLE:
         z2Pos = float(positions[6].split(':')[1])
         return np.array( [ xPos, yPos, z0Pos, z1Pos, z2Pos ] )
 
-    # Simple coordinate-move command
-    def moveXY(self, pt):
-        if (len(pt) != 2):
-            print 'Error: incorrect coordinate string. Dropping moveXY instruction'
-            return
 
-        if ( self.isPtInBounds((pt[0], pt[1], 0., 0., 0.)) == False ):
-            print 'Error: point out of bounds (less than zero, greater than maxExtents)'
-            return
+    def moveXY(self, pt):
+        """Simple coordinate-move command
+        """
+        if len(pt) != 2:
+            raise ValueError('incorrect coordinate string.')
+
+        if not self.isPtInBounds((pt[0], pt[1], 0., 0., 0.)):
+            raise ValueError('point out of bounds (less than zero, ' +
+                'greater than maxExtents)'
 
         cmd = "G01 X{0[0]} Y{0[1]}\n".format(pt)
         self.smoothie.sendSyncCmd(cmd)
         self.currentPosition[0] = pt[0]
         self.currentPosition[1] = pt[1]
 
-    # Coordinate-move command with added mandatory speed (Also updates default speed)
+
     def moveXYSpd(self, pt, spd):
-        if ( self.isPtInBounds((pt[0], pt[1], 0., 0., 0.)) == False ):
-            print 'Error: point out of bounds (less than zero, greater than maxExtents)'
-            return
+        """
+        Coordinate-move command with added mandatory speed (Also updates default
+        speed)
+        """
+        if not self.isPtInBounds((pt[0], pt[1], 0., 0., 0.)):
+            raise ValueError('point out of bounds (less than zero, ' +
+                'greater than maxExtents)')
 
         # Save current speed
         self.smoothie.sendSyncCmd("M120\n")
@@ -260,42 +273,50 @@ class MAPLE:
         self.currentPosition[0] = pt[0]
         self.currentPosition[1] = pt[1]
 
-    # Simple Z-axis move command. First 2 inputs (X and Y axis) should be 0.
+
     def moveZ(self, pt):
-        if (len(pt) != 5):
-            print 'Error: incorrect coordinate string. Dropping moveZ instruction'
-            return
-        if ( self.isPtInBounds(pt) == False ):
-            print 'Error: point out of bounds (less than zero, greater than maxExtents)'
-            return
+        """Simple Z-axis move command.
+        
+        First 2 inputs (X and Y axis) should be 0.
+        """
+        if len(pt) != 5:
+            raise ValueError('incorrect coordinate string.')
+
+        if not self.isPtInBounds(pt):
+            raise ValueError('point out of bounds (less than zero, ' +
+                'greater than maxExtents)')
+
         cmd = "G01 Z{0[2]} A{0[3]} B{0[4]}\n".format(pt)
         self.smoothie.sendSyncCmd(cmd)
         self.dwell_ms(1)
         self.currentPosition = pt
-        return
 
-    # Complex move command. All axes and end effectors can be moved in unison.
+
     def moveTo(self, pt):
-        if (len(pt) != 5):
-            print 'Error: incorrect coordinate string:', pt, ' Dropping moveTo instruction'
-            return
-        if ( self.isPtInBounds(pt) == False ):
-            print 'Error: point out of bounds (less than zero, greater than maxExtents)'
-            return
+        """All axes and end effectors move in unison.
+        """
+        if len(pt) != 5:
+            raise ValueError('incorrect coordinate string: {}'.format(pt))
+
+        if not self.isPtInBounds(pt):
+            raise ValueError('point out of bounds (less than zero, ' +
+                'greater than maxExtents)'
+
         cmd = "G01 X{0[0]} Y{0[1]} Z{0[2]} A{0[3]} B{0[4]}\n".format(pt)
         self.smoothie.sendSyncCmd(cmd)
         self.dwell_ms(1)
         self.currentPosition = pt
-        return
 
-    # Complex move command with added speed parameter (Updates default speed)
+
     def moveToSpd(self, pt, spd):
-        if (len(pt) != 5):
-            print 'Error: incorrect coordinate string. Dropping moveTo instruction'
-            return
-        if ( self.isPtInBounds(pt) == False ):
-            print 'Error: point out of bounds (less than zero, greater than maxExtents)'
-            return
+        """All axes and end effectors move in unison, sets new default speed.
+        """
+        if len(pt) != 5:
+            raise ValueError('incorrect coordinate string.')
+
+        if not self.isPtInBounds(pt):
+            raise ValueError('point out of bounds (less than zero, ' +
+                'greater than maxExtents)'
 
         # Save current speed
         self.smoothie.sendSyncCmd("M120\n")
@@ -309,20 +330,28 @@ class MAPLE:
         self.smoothie.sendSyncCmd("M121\n")
 
         self.currentPosition = pt
-        return
 
-    # Moves robot relative to current position, not absolute coordinates.
+
     def moveRel(self, pt):
+        """Moves robot relative to current position, not absolute coordinates.
+        """
         self.moveTo( map(sum,zip(self.currentPosition, pt)) )
 
-    # Moves robot to all coordinates in the list (Needs 5 scalars per list entry)
+
     def moveXYList(self, ptList):
+        """Moves robot to all coordinates in the list.
+
+        (Needs 5 scalars per list entry)
+        """
         for pt in ptList:
             self.moveXY(pt)
-        return
 
-    # Circular movement followed by lowering of fly manipulating end effector (Hit-detection causes Z-axis retreat)
+
     def moveCirc2(self, mid, r, n=360, startpos=0, endpos=360, spd=1500, rest=100, z=53, full=True, retreatZ=10, descendZ=9):       #also lowers onto z height
+        """
+        Circular movement followed by lowering of fly manipulating end effector
+        (Hit-detection causes Z-axis retreat)
+        """
         careful = 0     # failsafe when already starts lowered
         if spd >= 2001:
             print 'Adjusting speed to safe level 2000 ...'  # Prevents calibration errors due to post-motion-induced positional changes.
@@ -406,8 +435,12 @@ class MAPLE:
         trylower.update({'limitonce':careonce})
         return trylower
 
-    # Step-by-step lowering of fly-manipulating end effector with hit-detection
+
     def lowerCare(self, z, descendZ=9, retreatZ=18):        # z: depth of descend; descendZ: number of careful steps to reach depth z; retreatZ: RELATIVE height retreat upon hit
+        """
+        Step-by-step lowering of fly-manipulating end effector with
+        hit-detection.
+        """
         if z > 55 or z < 0:
             print 'Z not in range 0,55 - skipping...'
             return
@@ -426,12 +459,15 @@ class MAPLE:
         posend = self.getCurrentPosition
         return {'pos.begin': posbegin, 'pos.end': posend, 'limit': careful}
 
-    # Moves to coordinates and returns whether movement was detected
+
     def detectMotionAt(self, camcoordX, camcoordY, camcoordZ):
+        """Moves to coordinates and returns whether movement was detected
+        """
         self.moveToSpd(pt=[float(camcoordX), float(camcoordY), 0, camcoordZ, 10], spd=5000)
         self.dwell_ms(10)
         flyremaining = self.detectMotion( minpx=40, maxpx=2000)
         return flyremaining
+
 
     def getLimit(self):     # if this breaks look at position of limit max B in the string!
         limitgot = 0
@@ -446,11 +482,14 @@ class MAPLE:
             print 'Fly manipulator limit switch hit.'
         return limit
 
-    # Check whether desired coordinate (vector of exactly len 5) is larger than maximum workspace size or smaller than 0
+
     def isPtInBounds(self, pt):
-        if ( len(pt) != 5 ):
-            print 'Error: incorrect coordinate length.'
-            return False
+        """
+        Check whether desired coordinate (vector of exactly len 5) is larger
+        than maximum workspace size or smaller than 0.
+        """
+        if len(pt) != 5:
+            raise ValueError('incorrect coordinate length.')
 
         if (  ( pt[0] > self.maxExtents[0] ) or
               ( pt[1] > self.maxExtents[1] ) or
@@ -461,6 +500,7 @@ class MAPLE:
             return False
         else:
             return True
+
 
     def dwell_ms(self, milliseconds):
         """Dwell (do nothing) for the specified number of milliseconds.
@@ -485,14 +525,16 @@ class MAPLE:
         '''
 
 
-    # Controls light-circle LED around camera
     def light(self, state):
+        """Controls light-circle LED around camera
+        """
         if state:
             cmd = "M48\n"
         else:
             cmd = "M49\n"
         self.smoothie.sendCmd(cmd)
         return
+
 
     def flyManipAir(self, state):
         if state:
@@ -501,13 +543,16 @@ class MAPLE:
             cmd = "M47\n"
         self.smoothie.sendCmd(cmd)
 
-    # Controls negative air pressure out of fly manipulating end effector
+
     def flyManipVac(self, state):
+        """Controls negative air pressure out of fly manipulating end effector
+        """
         if state:
             cmd = "M44\n"
         else:
             cmd = "M45\n"
         self.smoothie.sendCmd(cmd)
+
 
     def smallPartManipAir(self, state):
         if state:
@@ -516,13 +561,18 @@ class MAPLE:
             cmd = "M43\n"
         self.smoothie.sendCmd(cmd)
 
-    # Controls negative air pressure out of part manipulating end effector (Holds part)
+
     def smallPartManipVac(self, state):
+        """Controls negative air pressure out of part manipulating end effector
+
+        (Holds part)
+        """
         if state:
             cmd = "M40\n"
         else:
             cmd = "M41\n"
         self.smoothie.sendCmd(cmd)
+
 
     def unused_fet(self, state):
         if state:
@@ -531,8 +581,12 @@ class MAPLE:
             cmd = "M51\n"
         self.smoothie.sendCmd(cmd)
 
-    # Captures arena picture at location (Images named consecutively if multiple coordinates specified)
+
     def SavePicAt(self, Xcoords, Ycoords, IndVect, qualPic=25, Zcam=40, ImgName='errImage.jpg'):
+        """Captures arena picture at location
+        
+        Images named consecutively if multiple coordinates specified
+        """
         if not self.cam_enabled:
             raise CamDisabledError('Camera needed to save images.')
 
@@ -545,8 +599,10 @@ class MAPLE:
             self.dwell_ms(10)
         self.light(False)
 
-    # Finds immobile fly on white surface (CO2 board)
+
     def findFly(self, image):
+        """Finds immobile fly on white surface (CO2 board)
+        """
         # Convert BGR to HSV
         h, s, v = cv2.split(cv2.cvtColor(image, cv2.COLOR_BGR2HSV))
         # Now threshold in the value channel
@@ -570,8 +626,12 @@ class MAPLE:
                 return coords
         return None
 
-    # Compares 2 images ~800ms apart and returns 1 if minpix < detected difference pixels < maxpix
+
     def detectMotion(self, minpx=40, maxpx=800,showimg=False):
+        """
+        Compares 2 images ~800ms apart and returns 1 if minpix < detected
+        difference pixels < maxpix
+        """
         self.light(True)
         time.sleep(0.2)
         self.light(True)
@@ -599,8 +659,12 @@ class MAPLE:
         else:
             return False
 
-    # Input coordinate vector is returned as logic depending on iterating detectMotion() on each index
+
     def sweep(self, ptsx, ptsy, camz=45, spd=5000):
+        """
+        Input coordinate vector is returned as logic depending on iterating
+        detectMotion() on each index
+        """
         detectvect = range(len(ptsx))
         indvect = np.array(range(len(ptsx)))
         for i in range(len(ptsx)):
@@ -610,8 +674,12 @@ class MAPLE:
         indvect = np.array(indvect[detectvect])
         return indvect
 
-    # Finds circle in input image. Used to find opening in arena lid to allow access.
+
     def findOpening(self, image, slowmode=False, MAX_SIZE=74, MIN_SIZE=63, startp1=119, startp2=142, startp3=2.7, imgshow=0):
+        """
+        Finds circle in input image. Used to find opening in arena lid to allow
+        access.
+        """
         result = []
         detect = 0
         if slowmode == False:
@@ -669,8 +737,12 @@ class MAPLE:
                     startp2 = startp2 - 3       # get less sensitive if no circles were found
         return circles
 
-    # Returns degrees of a point's coordinates relative to the image midpoint (the opening)
+
     def getDegs(self, circleList, img_width=1280, img_height=960):
+        """
+        Returns degrees of a point's coordinates relative to the image midpoint
+        (the opening)
+        """
         imgmid = [img_width/2, img_height/2]
         if len(circleList[:,1]) >= 2 and not (circleList[0,0] - circleList[1,0] >= 150) and not (circleList[0,1] - circleList[1,1] >= 150):    # allows 2 close circles and takes mean coords instead (Accuracy - Iteration tradeoff. Works well if less than 10px apart).
             circleList[0,0] = (circleList[0,0] + circleList[1,0])/2
@@ -687,8 +759,9 @@ class MAPLE:
         return degs
 
 
-    # Combines findOpening and getDegs
     def findDegs(self, slowmode=True, precision=4, MAX_SIZE=74, MIN_SIZE=63, startp1=139, startp2=150, startp3=2.6, imgshow=0):
+        """Combines findOpening and getDegs
+        """
         trymax=MAX_SIZE
         trymin=MIN_SIZE
         try1 = startp1
