@@ -289,7 +289,35 @@ class MAPLE:
         cmd = "G01 Z{0[2]} A{0[3]} B{0[4]}\n".format(pt)
         self.smoothie.sendSyncCmd(cmd)
         self.dwell_ms(1)
-        self.currentPosition = pt
+        # TODO use slice notation if currentPosition supports that
+        self.currentPosition[2] = pt[2]
+        self.currentPosition[3] = pt[3]
+        self.currentPosition[4] = pt[4]
+
+
+    def moveZ0(self, position):
+        """Moves the part manipulator effector.
+        """
+        # TODO assert position is floating point? numeric?
+        cmd = 'G01 Z{}\n'.format(position)
+        self.smoothie.sendSyncCmd(cmd)
+        self.currentPosition[2] = position
+
+
+    def moveZ1(self, position):
+        """Moves the camera effector.
+        """
+        cmd = 'G01 A{}\n'.format(position)
+        self.smoothie.sendSyncCmd(cmd)
+        self.currentPosition[3] = position
+
+
+    def moveZ2(self, position):
+        """Moves the fly manipulator effector.
+        """
+        cmd = 'G01 B{}\n'.format(position)
+        self.smoothie.sendSyncCmd(cmd)
+        self.currentPosition[4] = position
 
 
     def moveTo(self, pt):

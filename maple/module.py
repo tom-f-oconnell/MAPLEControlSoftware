@@ -31,9 +31,35 @@ class Module(ABC):
             raise ValueError('expecting length of extent to be 3 (x, y, z)')
         self.extent = np.array(extent)
 
-        # TODO check this definition is adhered to with my modules
         # Defined from 0 at the bottom of bounding box, in Z dimension.
         self.flymanip_working_height = flymanip_working_height
+
+    def effectors_to_travel_height(self):
+        # TODO config option to set buffer above module height?
+        if self.robot is None:
+            return
+
+        # TODO add support for z1
+        z0_t = self.robot.z0_to_worksurface - self.extent[2] - 2
+        z2_t = self.robot.z2_to_worksurface - self.extent[2] - 2
+        current_z = self.robot.currentPosition[2:]
+        assert len(current_z) == 3
+
+        # TODO implement s.t. multiple axes can move at once, while leaving
+        # arbitrary combinations (according to some combination) where they are
+        if current_z[0] <= z0_t:
+            print('Z0 already above minimum travel height ({} <= {})'.format(
+                current_z[0], z0_t))
+        else:
+            print('Moving part manipulator to travel height: {}'.format(z0_t))
+            self.robot.moveZ0(z0_t)
+
+        if current_z[2] <= z2_t:
+            print('Z2 already above minimum travel height ({} <= {})'.format(
+                current_z[2], z2_t))
+        else:
+            print('Moving fly manipulator to travel height: {}'.format(z2_t))
+            self.robot.moveZ2(z2_t)
 
     # TODO so should this still be able to hold a point?
     # may depend on whether i want to do each transform in module, or all at
@@ -49,23 +75,11 @@ class Source(Module):
         super(Source, self).__init__(robot, offset, extent,
                                      flymanip_working_height)
 
-    # TODO let get take an index / position, so that workspace level action
-    # planning can be used to save time? (w/ other fns to return positions a
-    # priori) would probably need more information than that...
-    # TODO how to set random / in order?
     # TODO return a sequence of steps needed to get a fly in (including opening
     # doors, etc?) just execute the gcode?
     # TODO typehint to indicat this returns None (?)
-    # TODO TODO maybe return position in get / put, just to facilitate keeping
-    # track of flies within an experiment?
     @abstractmethod
     def get(self):
-        """
-        """
-        pass
-
-    @abstractmethod
-    def get_random(self):
         """
         """
         pass
@@ -97,13 +111,6 @@ class Sink(Module):
         """
         pass
 
-    # TODO maybe don't make these required?
-    @abstractmethod
-    def put_random(self):
-        """
-        """
-        pass
-
     @abstractmethod
     def is_full(self):
         """
@@ -111,10 +118,6 @@ class Sink(Module):
         pass
 
 
-# TODO do i want to manage positions in module, or stick to storage and other
-# subclasses of sink/source?
-# TODO TODO maybe rename well to "anchor" or something to make more function
-# agnostic?
 # TODO need to do more than have some abstractmethods to prevent instantiation?
 class Array(Source, Sink):
     def __init__(self, robot, offset, extent, flymanip_working_height,
@@ -143,14 +146,18 @@ class Array(Source, Sink):
     # override indices methods?
 
     def put_indices(self, i, j):
+        self.effectors_to_travel_height()
         xy = self.anchor_center(i, j)
         self.put(xy, (i,j))
+        self.effectors_to_travel_height()
         self.full[i, j] = True
 
     def get_indices(self, i, j):
+        self.effectors_to_travel_height()
         # TODO rename to _position / coords / xy?
         xy = self.anchor_center(i, j)
         self.get(xy, (i,j))
+        self.effectors_to_travel_height()
         self.full[i, j] = False
 
     def anchor_center(self, i, j):
@@ -248,21 +255,27 @@ class Morgue(Sink):
         # TODO check we are already over morgue max z? when to pick max z?
 
         # could also pick a point, in the morgue, closer than the center
-        center = offset + extent[:2] / 2.0
-        self.robot.moveXY(center)
-        self.robot.flyManipVac(False)
-        self.robot.flyManipAir(True)
-        # TODO can you use positional arg in place of sole kwarg???
-        # there are other places in MAPLE code that call dwell with a positional
-        # time...
-        # TODO determine whether this is in milliseconds or seconds, and
-        # document
-        self.robot.dwell_ms(2000)
-        self.robot.flyManipAir(False)
+        center = self.offset + self.extent[:2] / 2.0
 
-    # keep this?
-    def put_random(self):
-        self.put()
+        if self.robot is not None:
+            self.effectors_to_travel_height()
+
+            self.robot.moveXY(center)
+
+            # TODO update this to appropriate variables that config file is
+            # supposed to set
+            z0 = self.robot.z2_to_worksurface
+            zw = z0 - self.flymanip_working_height
+            print('Moving fly manipulator to working height: {}'.format(zw))
+            self.robot.moveZ2(zw)
+
+            self.robot.flyManipVac(False)
+            self.robot.flyManipAir(True)
+            self.robot.dwell_ms(2000)
+            self.robot.flyManipAir(False)
+
+            self.effectors_to_travel_height()
+
 
     def is_full(self):
         return False
@@ -289,11 +302,13 @@ class FlyPlate(Array):
         # TODO get from dimension drawing? this was just roughly measured
         to_first_well = (11.5, 13.0)
         well_spacing = 9.0
-        flymanip_working_height = 0
+        # TODO test / play around with this
+        flymanip_working_height = 15.0
 
         super(FlyPlate, self).__init__(robot, offset, extent,
               flymanip_working_height, n_cols, n_rows,
               to_first_well, well_spacing, loaded=loaded)
+
 
     def get(self, xy, ij):
         # TODO TODO just add a verbose flag, to print when using on a real robot
@@ -301,15 +316,23 @@ class FlyPlate(Array):
         print('Getting fly from plate {} ({})'.format(ij, xy))
         #    return
 
-        # TODO any particular reason air is turned on in cft.homeWithdraw?
-        # pinswap thing? mistake?
-        self.robot.flyManipVac(True)
-        self.robot.flyManipAir(False)
-        self.robot.moveXY(xy)
-        # TODO TODO lower to working height
-        # TODO maybe copy vacuum burst thing in cft
-        # TODO change dwell to dwell_s and dwell_ms
-        self.robot.dwell_ms(3000)
+        if self.robot is not None:
+            # TODO any particular reason air is turned on in cft.homeWithdraw?
+            # pinswap thing? mistake?
+            self.robot.flyManipVac(True)
+            self.robot.flyManipAir(False)
+            self.robot.moveXY(xy)
+
+            # TODO update this to appropriate variables that config file is
+            # supposed to set
+            z0 = self.robot.z2_to_worksurface
+            zw = z0 - self.flymanip_working_height
+            print('Moving fly manipulator to working height: {}'.format(zw))
+            self.robot.moveZ2(zw)
+
+            # TODO maybe copy vacuum burst thing in cft
+            self.robot.dwell_ms(3000)
+
 
     def put(self, xy, ij):
         """
@@ -319,12 +342,23 @@ class FlyPlate(Array):
         print('Putting fly in plate {} ({})'.format(ij, xy))
         #    return
 
-        self.robot.moveXY(xy)
-        # TODO TODO lower to working height
-        # TODO could also experiment w/ just leaving vac on
-        self.robot.flyManipVac(False)
-        self.robot.flyManipAir(True)
-        self.robot.dwell_ms(3000)
-        # reason not to turn air off?
-        self.robot.flyManipAir(False)
+        if self.robot is not None:
+            self.robot.moveXY(xy)
+
+            # TODO update this to appropriate variables that config file is
+            # supposed to set
+            # TODO factor into a module fn?
+            z0 = self.robot.z2_to_worksurface
+            zw = z0 - self.flymanip_working_height
+            print('Moving fly manipulator to working height: {}'.format(zw))
+            self.robot.moveZ2(zw)
+
+            # TODO TODO lower to working height
+            # TODO could also experiment w/ just leaving vac on
+            self.robot.flyManipVac(False)
+            self.robot.flyManipAir(True)
+            self.robot.dwell_ms(3000)
+
+            # reason not to turn air off?
+            self.robot.flyManipAir(False)
 
