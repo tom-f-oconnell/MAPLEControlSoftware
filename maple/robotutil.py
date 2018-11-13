@@ -243,7 +243,7 @@ class MAPLE:
 
         if not self.isPtInBounds((pt[0], pt[1], 0., 0., 0.)):
             raise ValueError('point out of bounds (less than zero, ' +
-                'greater than maxExtents)'
+                'greater than maxExtents)')
 
         cmd = "G01 X{0[0]} Y{0[1]}\n".format(pt)
         self.smoothie.sendSyncCmd(cmd)
@@ -300,7 +300,7 @@ class MAPLE:
 
         if not self.isPtInBounds(pt):
             raise ValueError('point out of bounds (less than zero, ' +
-                'greater than maxExtents)'
+                'greater than maxExtents)')
 
         cmd = "G01 X{0[0]} Y{0[1]} Z{0[2]} A{0[3]} B{0[4]}\n".format(pt)
         self.smoothie.sendSyncCmd(cmd)
@@ -316,7 +316,7 @@ class MAPLE:
 
         if not self.isPtInBounds(pt):
             raise ValueError('point out of bounds (less than zero, ' +
-                'greater than maxExtents)'
+                'greater than maxExtents)')
 
         # Save current speed
         self.smoothie.sendSyncCmd("M120\n")
