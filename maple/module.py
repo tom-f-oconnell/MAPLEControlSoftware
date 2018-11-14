@@ -137,7 +137,9 @@ class Array(Source, Sink):
         self.full = np.full((self.n_cols, self.n_rows), loaded)
 
         self.correction = None
-        self.position_correction = position_correction
+
+        if position_correction:
+            self.fit_correction()
        
 
     # TODO maybe use optional args?
@@ -148,6 +150,7 @@ class Array(Source, Sink):
     @abstractmethod
     def put(self, xy, ij):
         pass
+
 
     # TODO possible to make it so they can implement either *_xy methods, or
     # override indices methods?
@@ -167,10 +170,8 @@ class Array(Source, Sink):
         self.effectors_to_travel_height()
         self.full[i, j] = True
 
-    def get_indices(self, i, j):
-        if self.correction is None and self.position_correction:
-            self._build_correction()
 
+    def get_indices(self, i, j):
         self.effectors_to_travel_height()
         # TODO rename to _position / coords / xy?
         xy = self.anchor_center(i, j)
@@ -178,7 +179,10 @@ class Array(Source, Sink):
         self.effectors_to_travel_height()
         self.full[i, j] = False
 
-    def _build_correction(self):
+
+    def fit_correction(self):
+        """
+        """
         # TODO if there are different jigs, with different errors,
         # but one module of the same class in the same place in both
         # workspaces, that might be a strong case for more explicit handling
@@ -195,14 +199,17 @@ class Array(Source, Sink):
                 corrections = pickle.load(f)
 
             if cls in corrections:
-                for ox, oy, c in corrections[cls]:
+                for ox, oy, data in corrections[cls]:
                     if np.allclose([ox, oy], self.offset):
-                        self.correction = c
+                        print('Found saved corrections for this module.')
+                        self.correction = data['correction']
                         return
 
             print('No transform for current module')
                 
-        corrections = dict()
+        else:
+            corrections = dict()
+
         corrections[cls] = []
 
         print('Measuring error to a few points...')
@@ -210,10 +217,12 @@ class Array(Source, Sink):
         print('Computing linear transform...')
         correction = self.compute_correction(xy_points, errors)
 
-        corrections[cls].append((self.offset[0], self.offset[1],
-            correction))
-        # TODO TODO also save points and errors, so correction can be recomputed
-        # with a different function
+        data = dict()
+        data['points'] = xy_points
+        data['errors'] = errors
+        data['correction'] = correction
+
+        corrections[cls].append((self.offset[0], self.offset[1], data))
 
         with open(workspace_file, 'wb') as f:
             print('Saving transform to {}'.format(workspace_file))
