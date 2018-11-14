@@ -63,6 +63,11 @@ class serialDevice:
     # Block and wait for the device to reply with "ok" or "OK"
     # Times out after self.WaitTimeout (set above)
     def waitForOK(self):
+        # TODO TODO disregard all warnings? or maybe only propagate them up as
+        # warnings, rather than runtimeerrors?
+        # TODO or should i change the code to avoid causing the warning about
+        # homing after a half (see errors.txt in choice/maple for details on
+        # this error)?
         #print "WFO:"
         output = ''
         timeoutMax = self.WaitTimeout / self.ser.timeout
@@ -79,8 +84,18 @@ class serialDevice:
                 break
             if byte == '\n':
                 break
-        if ( not output.startswith("ok") ) and ( not output.startswith("OK") ):
-            print "Unexpected serial output:", output.rstrip('\r\n'), "(", ':'.join(x.encode('hex') for x in output), ")"
+
+        if not (output.startswith("ok") or output.startswith("OK")):
+            # TODO what is hex encoding useful for?
+            # TODO TODO where are the "!!" lines coming from? error in
+            # above parsing or something meaningful from smoothie?
+            # does !! mean a limit switch was hit or something?
+            # what did the function to lower Z2 while checking that switch look
+            # for?
+            raise RuntimeError('Unexpected serial output: {} ({})'.format(
+                output.rstrip('\r\n'),
+                ':'.join(x.encode('hex') for x in output)))
+
 
     # Send a command to the device via serial port
     # Asynchronous by default - doesn't wait for reply
@@ -96,7 +111,12 @@ class serialDevice:
         self.ser.flushInput()
         self.ser.write(cmd)
         self.ser.flush()
-        self.waitForOK()
+        try:
+            self.waitForOK()
+        except RuntimeError:
+            # TODO print to stderr
+            print('Unexpected output on command {}'.format(cmd))
+            raise
 
     # Send a command and retrieve the reply
     def sendCmdGetReply(self, cmd):

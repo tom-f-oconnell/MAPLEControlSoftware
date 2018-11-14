@@ -66,7 +66,18 @@ class MAPLE:
                       'camera_enabled': True
                       }
 
-    def __init__(self, robotConfigFile, cam_class=None):
+    def __init__(self, robotConfigFile, cam_class=None, smoothie_retry_ms=200):
+        """
+        Args:
+            cam_class (subclass of cameras.Camera or None): (default=None) If
+                None, camera class is looked up in configuration file.
+                Otherwise, this class is instantiated to act as the robots
+                camera.
+
+            smoothie_retry_ms (int): (default=200) If negative, None, or False,
+                __init__ fails on the first attempt. Otherwise, wait this many
+                milliseconds before retrying Smoothie serial connection.
+        """
         print "Reading config file...",
         self.config = ConfigParser.RawConfigParser(self.configDefaults)
         self.readConfig(robotConfigFile)
@@ -76,16 +87,35 @@ class MAPLE:
         self.smoothie = None
 
         # Search serial ports, look for motor control board and smoothie
+        # TODO TODO implement whatever retry logic necessary if constructor args
+        # indicate we want that
         portList = flysorterSerial.availablePorts()
         print "Port list:", portList
         for portDesc in portList:
+            # TODO delete me
+            print('Trying port {}'.format(portDesc))
+            #
             tempPort = flysorterSerial.serialDevice(portDesc, 115200)
-            if tempPort.sendCmdGetReply("version\n").startswith("Build version"):
+            reply = tempPort.sendCmdGetReply("version\n")
+            if reply.startswith("Build version"):
+                # TODO delete me
+                print("Smoothie's reply:")
+                print(reply)
+                #
                 print "Port:", portDesc, "is smoothie."
                 self.smoothiePort = portDesc
                 self.smoothie = tempPort
                 portList.remove(portDesc)
                 continue
+            else:
+                # TODO TODO TODO so under what conditions is the reply
+                # "Smoothie"? what is normal reply again?
+                # from reading too much on last call? flushing / not waiting
+                # related?
+
+                # TODO delete me
+                print('Apparently not a smoothie\ngot reply:\n{}'.format(reply))
+                #
             tempPort.close()
 
         if self.smoothie is None:
@@ -293,6 +323,24 @@ class MAPLE:
         self.currentPosition[2] = pt[2]
         self.currentPosition[3] = pt[3]
         self.currentPosition[4] = pt[4]
+
+
+    # TODO refactor this single coordinate fns to call a common fn with diff
+    # args (move_idx / move_coord / move_dim or something)
+    def moveX(self, position):
+        """Moves gantry in X.
+        """
+        cmd = 'G01 X{}\n'.format(position)
+        self.smoothie.sendSyncCmd(cmd)
+        self.currentPosition[0] = position
+
+
+    def moveY(self, position):
+        """Moves gantry in Y.
+        """
+        cmd = 'G01 Y{}\n'.format(position)
+        self.smoothie.sendSyncCmd(cmd)
+        self.currentPosition[1] = position
 
 
     def moveZ0(self, position):
@@ -504,6 +552,7 @@ class MAPLE:
                 templimit = str(self.smoothie.sendCmdGetReply("M119\n").split(' '))
                 limit = int(templimit[150])
                 limitgot = 10
+            # TODO TODO catch specific error. make alg more clear.
             except:
                 limitgot = limitgot + 1
         if limit == 1:

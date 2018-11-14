@@ -10,6 +10,8 @@ from __future__ import division
 
 import abc
 from abc import abstractmethod
+import os
+import pickle
 
 import numpy as np
 
@@ -121,7 +123,8 @@ class Sink(Module):
 # TODO need to do more than have some abstractmethods to prevent instantiation?
 class Array(Source, Sink):
     def __init__(self, robot, offset, extent, flymanip_working_height,
-            n_cols, n_rows, to_first_anchor, anchor_spacing, loaded=False):
+            n_cols, n_rows, to_first_anchor, anchor_spacing, loaded=False,
+            position_correction=True):
 
         super(Array, self).__init__(robot, offset, extent,
             flymanip_working_height)
@@ -132,7 +135,11 @@ class Array(Source, Sink):
         # TODO let this be an arbitrary xy vector
         self.anchor_spacing = anchor_spacing
         self.full = np.full((self.n_cols, self.n_rows), loaded)
-        
+
+        self.correction = None
+        self.position_correction = position_correction
+       
+
     # TODO maybe use optional args?
     @abstractmethod
     def get(self, xy, ij):
@@ -146,6 +153,14 @@ class Array(Source, Sink):
     # override indices methods?
 
     def put_indices(self, i, j):
+        # TODO TODO TODO definitely refactor (so that my choice script doesnt
+        # try to get a fly from the flyplate before doing calibration on arena)
+        # just a separate checking function that needs to be invoked? back to
+        # constructor, and just don't construct objects before it's time to
+        # calibrate them?
+        if self.correction is None and self.position_correction:
+            self._build_correction()
+
         self.effectors_to_travel_height()
         xy = self.anchor_center(i, j)
         self.put(xy, (i,j))
@@ -153,6 +168,9 @@ class Array(Source, Sink):
         self.full[i, j] = True
 
     def get_indices(self, i, j):
+        if self.correction is None and self.position_correction:
+            self._build_correction()
+
         self.effectors_to_travel_height()
         # TODO rename to _position / coords / xy?
         xy = self.anchor_center(i, j)
@@ -160,12 +178,277 @@ class Array(Source, Sink):
         self.effectors_to_travel_height()
         self.full[i, j] = False
 
+    def _build_correction(self):
+        # TODO if there are different jigs, with different errors,
+        # but one module of the same class in the same place in both
+        # workspaces, that might be a strong case for more explicit handling
+        # of workspaces, so the two could have their own corrections.
+
+        # TODO test w/ "old" and "new-style" classes
+        # might need to just use __name__ in latter case
+        cls = self.__class__.__name__
+        workspace_file = os.path.expanduser('~/.maple_workspace.p')
+
+        if os.path.exists(workspace_file):
+            print('Found saved module position transforms...')
+            with open(workspace_file, 'rb') as f:
+                corrections = pickle.load(f)
+
+            if cls in corrections:
+                for ox, oy, c in corrections[cls]:
+                    if np.allclose([ox, oy], self.offset):
+                        self.correction = c
+                        return
+
+            print('No transform for current module')
+                
+        corrections = dict()
+        corrections[cls] = []
+
+        print('Measuring error to a few points...')
+        xy_points, errors = self.measure_errors()
+        print('Computing linear transform...')
+        correction = self.compute_correction(xy_points, errors)
+
+        corrections[cls].append((self.offset[0], self.offset[1],
+            correction))
+        # TODO TODO also save points and errors, so correction can be recomputed
+        # with a different function
+
+        with open(workspace_file, 'wb') as f:
+            print('Saving transform to {}'.format(workspace_file))
+            pickle.dump(corrections, f)
+
+
+    def shape(self):
+        # TODO convert to property?
+        return (self.n_cols, self.n_rows)
+
+    # TODO TODO provide general function like this (maybe even in Module)
+    # where you can manually move robot to define the position of some key
+    # points, and the best (x,y) offset (and maybe also some linear correction)
+    # is saved to config file automatically
+    def measure_errors(self, err_from_centering=True):
+        """To manually record errors between Z2 effector and anchors.
+
+        If `err_from_centering` is True, you control the robot in X and Y until
+        Z2 appears centered over each anchor. Otherwise, you measure the
+        distance between the anchor centers and where the Z2 end effector is,
+        and enter those errors.
+        """
+        # TODO TODO make this fn (alternatively?) work by moving robot in X,Y
+        # until centered, then measuring the distance moved as the error
+        # (could be more precise than kinda eyeballing w/ calipers)
+        if self.robot is None:
+            raise IOError('can not measure_errors without a robot')
+
+        self.effectors_to_travel_height()
+
+        one_side = (0, 0)
+        other_side = (self.n_cols - 1, self.n_rows - 1)
+        index_coords = (one_side, other_side)
+
+        # TODO allow motion in Z while correcting XY in err_from_centering case?
+        # (to check effector can enter hole)
+
+        points = []
+        errors = []
+        for i, j in index_coords:
+            point = self.anchor_center(i, j)
+
+            self.robot.moveXY(point)
+
+            # TODO TODO factor this repeated parsing attempt for a float into a
+            # function
+            # TODO use __future__ for input and use that instead of raw_input
+            cumulative_dz2 = 0.0
+            while True:
+                r = raw_input('Amount to move Z2 (+=down) ' +
+                        '(empty to continue):\n')
+                if r == '':
+                    d_z2 = 0.0
+                    break
+                try:
+                    d_z2 = float(r)
+                    curr_z2 = self.robot.currentPosition[4]
+                    self.robot.moveZ2(curr_z2 + d_z2)
+                    cumulative_dz2 += d_z2
+                except ValueError:
+                    print('Could not parse input as a float')
+            print('Moved Z2 a total of {}'.format(cumulative_dz2))
+
+            if err_from_centering:
+                initial_xy = self.robot.currentPosition[:2].copy()
+
+                while True:
+                    r = raw_input('Amount to move in X to center (+=left) ' +
+                            '(empty to continue):\n')
+                    if r == '':
+                        dx = 0.0
+                        break
+                    try:
+                        dx = float(r)
+                        curr_x = self.robot.currentPosition[0]
+                        self.robot.moveX(curr_x + dx)
+                    except ValueError:
+                        print('Could not parse input as a float')
+
+                while True:
+                    r = raw_input('Amount to move in Y to center ' +
+                        '(+=towards you) (empty to continue):\n')
+                    if r == '':
+                        dy = 0.0
+                        break
+                    try:
+                        dy = float(r)
+                        curr_y = self.robot.currentPosition[1]
+                        self.robot.moveY(curr_y + dy)
+                    except ValueError:
+                        print('Could not parse input as a float')
+
+                # TODO just save final_xy and use that to compute transform?
+                final_xy = self.robot.currentPosition[:2]
+                x_err, y_err = final_xy - initial_xy
+
+            else:
+                while True:
+                    r = raw_input('Enter X error in mm (+ = effector is too ' +
+                        'far to the left):\n')
+                    try:
+                        x_err = float(r)
+                        break
+                    except ValueError:
+                        print('Could not parse input as a float')
+
+                while True:
+                    r = raw_input('Enter Y error in mm (+ = effector is too ' + 
+                        'far towards you):\n')
+                    try:
+                        y_err = float(r)
+                        break
+                    except ValueError:
+                        print('Could not parse input as a float')
+
+            points.append(point)
+            errors.append((x_err, y_err))
+
+            # TODO is this behaving as it should?
+            # TODO allow option to increase height before moving to next
+            # point? (w/ flag to suppress as kwarg i think)
+            self.effectors_to_travel_height()
+
+        # TODO TODO save correction under a hash of type + initial estimate
+        # (then just keep initial estimate constant)
+        # (actually don't use a hash, just truncate coords for ID, so that it
+        # is straightforward to check approximate equality of coords)
+
+        # TODO TODO also worth saving indices?
+        return points, errors
+
+
+    def compute_correction(self, xy_points, errors):
+        """
+        Computes a linear tranform that maps xy points computed from
+        anchor_center to better estimates of the true anchor positions in
+        Smoothie coordinate space.
+
+        Stores the correction s.t. it is applied on subsequent calls to
+        anchor_center.
+        """
+        self.correction, _, _, _ = np.linalg.lstsq(xy_points, errors)
+        return self.correction
+
+
+    # TODO share more of this function with measure_error?
+    def measure_working_distance(self, z_axis=2):
+        """To manually record a working distance for an effector in this array.
+        """
+        if z_axis < 0 or z_axis > 2:
+            raise ValueError('0,1,2 are only valid values for z_axis')
+
+        if z_axis != 2:
+            raise NotImplementedError
+
+        if self.robot is None:
+            raise IOError('can not measure_working_distance without a robot')
+
+        self.effectors_to_travel_height()
+
+        one_side = (0, 0)
+        other_side = (self.n_cols - 1, self.n_rows - 1)
+        index_coords = (one_side, other_side)
+
+        points = []
+        z_positions = []
+        for i, j in index_coords:
+            point = self.anchor_center(i, j)
+
+            # TODO TODO shift this as appropriate if z is 0 or 1
+            # (assuming origin is defined wrt z2, as i have)
+            # (just in X if modules are aligned along X and Y axes)
+            self.robot.moveXY(point)
+
+            curr_z = None
+            while True:
+                r = raw_input('Amount to move Z2 (+=down) ' +
+                        '(empty to record current position):\n')
+                if r == '':
+                    if curr_z is None:
+                        print('Please move axis away from travel distance at ' +
+                            'least once. Type 0 and press enter to use this ' +
+                            'position anyway.')
+                    else:
+                        break
+                try:
+                    dz = float(r)
+                    curr_z = self.robot.currentPosition[2 + z_axis]
+
+                    # TODO just make a move fn that takes an index?
+                    if z_axis == 0:
+                        move_z_fn = self.robot.moveZ0
+                    elif z_axis == 1:
+                        move_z_fn = self.robot.moveZ1
+                    elif z_axis == 2:
+                        move_z_fn = self.robot.moveZ2
+
+                    move_z_fn(curr_z + dz)
+
+                except ValueError:
+                    print('Could not parse input as a float')
+
+            points.append(point)
+            z_positions.append(curr_z)
+
+            self.effectors_to_travel_height()
+
+        print('Mean recorded Z{} position (from zero defined '.format(z_axis) +
+            'by homing) {}'.format(np.mean(z_positions)))
+        print('Mean Z{} position (with zero as the '.format(z_axis) +
+            'worksurface, positive up) {}'.format(
+                self.flymanip_working_height - np.mean(z_positions)))
+
+        return points, z_positions
+
+
     def anchor_center(self, i, j):
         """
         Override if necessary.
+
+        Function from indices i,j to x,y in Smoothie space, assuming x and y
+        axes of module as the same as those axes of Smoothie space.
         """
-        return (self.offset[:2] + self.to_first_anchor +
-            [i*self.anchor_spacing, j*self.anchor_spacing])
+        # TODO maybe just allow saving true smoothie (x,y) of EACH center s.t.
+        # coords can be looked up from a table, in case where linear
+        # transformation fails?
+        ideal_center = np.array((self.offset[:2] + self.to_first_anchor +
+            [i*self.anchor_spacing, j*self.anchor_spacing]))
+
+        if self.correction is not None:
+            # Estimate errors, and add those to the original estimates.
+            return ideal_center.dot(self.correction) + ideal_center
+        else:
+            return ideal_center
+
 
     # TODO maybe put in a fn to check bounds of offsets + paths
     # TODO also let this be a function that generates positions in order?
