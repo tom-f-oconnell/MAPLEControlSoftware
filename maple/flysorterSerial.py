@@ -12,6 +12,7 @@ import glob
 
 import serial
 
+import errs
 
 # Serial communications class that is used for multiple devices.
 #
@@ -37,8 +38,8 @@ class serialDevice:
         try:
             self.ser = serial.Serial(port, baudrate = baud, timeout = timeout)
         except:
-            print "Failed to open port", port
-            return
+            raise IOError('Failed to open port {}'.format(port))
+
         self.isOpened = True
 
     def close(self):
@@ -58,6 +59,7 @@ class serialDevice:
             if byte == '\n':
                 break
         #print "GSO Output:", output
+        # TODO TODO handle limit siwtch here? (would it just be missed now?)
         return output
 
     # Block and wait for the device to reply with "ok" or "OK"
@@ -86,12 +88,25 @@ class serialDevice:
                 break
 
         if not (output.startswith("ok") or output.startswith("OK")):
+            # maybe refactor so this isn't all done with exceptions?
+
+            # TODO this won't be discovered until a few commands later though...
+            # TODO is this ever triggered? (searching for right string?)
+            #print('waitForOK output: {}'.format(output))
+            if output.startswith('Limit switch B was hit'):
+                raise errs.FlyManipulatorCrashError
+
+            elif output.startswith('WARNING: After HALT you should HOME ' +
+                'as position is currently unknown'):
+
+                #raise errs.NeedToHomeError
+                return
+
             # TODO what is hex encoding useful for?
-            # TODO TODO where are the "!!" lines coming from? error in
+            # TODO where are the "!!" lines coming from? error in
             # above parsing or something meaningful from smoothie?
             # does !! mean a limit switch was hit or something?
-            # what did the function to lower Z2 while checking that switch look
-            # for?
+            # (!! response to everything from switch hit to M999/reset?)
             raise RuntimeError('Unexpected serial output: {} ({})'.format(
                 output.rstrip('\r\n'),
                 ':'.join(x.encode('hex') for x in output)))
@@ -106,6 +121,9 @@ class serialDevice:
 
     # Send a command to the device via serial port
     # Waits to receive reply of "ok" or "OK" via waitForOK()
+    # TODO TODO what is the point of checking for OK? it does not mean the
+    # command finished successfully (just that it was sent? sent and will be
+    # excecuted if nothing goes wrong in between? anything more?)
     def sendSyncCmd(self, cmd):
         #print "SSC:", cmd
         self.ser.flushInput()
@@ -113,17 +131,29 @@ class serialDevice:
         self.ser.flush()
         try:
             self.waitForOK()
+
         except RuntimeError:
-            # TODO print to stderr
+            # TODO log
             print('Unexpected output on command {}'.format(cmd))
             raise
+
+        except errs.NeedToHomeError:
+            # Otherwise, we ARE homing, so it doesn't matter.
+            if not cmd.startswith('G28'):
+                raise
+
 
     # Send a command and retrieve the reply
     def sendCmdGetReply(self, cmd):
         self.ser.flushInput()
         self.ser.write(cmd)
         self.ser.flush()
-        return self.getSerOutput()
+        out = self.getSerOutput()
+        # TODO this a read flush too? if not, just read until no bytes left
+        self.ser.flush()
+        # TODO maybe test w/ another getSerOutput / other read call
+        return out
+
 
 def availablePorts():
     """Lists serial ports"""

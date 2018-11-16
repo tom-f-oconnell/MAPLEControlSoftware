@@ -21,6 +21,7 @@ import cv2
 
 import flysorterSerial
 import cameras
+import errs
 
 
 class CamDisabledError(IOError):
@@ -66,7 +67,8 @@ class MAPLE:
                       'camera_enabled': True
                       }
 
-    def __init__(self, robotConfigFile, cam_class=None, smoothie_retry_ms=200):
+    def __init__(self, robotConfigFile, cam_class=None, smoothie_retry_ms=200,
+            home=True):
         """
         Args:
             cam_class (subclass of cameras.Camera or None): (default=None) If
@@ -173,12 +175,14 @@ class MAPLE:
         self.currentPosition = self.getCurrentPosition()
         print "Robot initialized."
 
-        # TODO need newline???
-        self.smoothie.sendCmd("M999")
+        self.smoothie.sendCmd('M999\n')
+        self.flyManipVac(False)
         self.flyManipAir(False)
         self.smallPartManipVac(False)
-        # TODO define other two valve states as well?
-        self.home()
+        self.smallPartManipAir(False)
+
+        if home:
+            self.home()
 
 
     def readConfig(self, configFile):
@@ -205,7 +209,99 @@ class MAPLE:
         self.cam_enabled = self.config.getboolean(section, 'camera_enabled')
 
 
+    # TODO TODO could also assume height can vary over (x,y) space and fit some
+    # function from many points
+    def zero_z2_to_reference(self, xy=None, thickness=0.0, speed=200):
+        """
+        thickness (mm) is how high above the worksurface the reference point is
+        speed in mm/min
+        """
+        # TODO TODO TODO it would be nice to be able to define the Z2 lower
+        # limit switch as a zprobe, but I do still want the machine to stop by
+        # default, if a crash can not explicitly be handled, and it's not clear
+        # the z-probe module supports that. also, the docs say it can't be both
+        # a zprobe and an endstop (why?)
+        if xy is not None:
+            self.moveXY(xy)
+            while True:
+                position = self.getCurrentPosition()
+                curr_xy = position[:2]
+                if np.allclose(curr_xy, xy):
+                    break
+                time.sleep(0.01)
+
+        # TODO move to max? minus some buffer?
+        z2_max = 55
+        try:
+            self.moveZ2(z2_max, speed=speed)
+            # Need to check which of two things happens first:
+            # 1) We reach the maximum Z2 position.
+            # 2) The lower Z2 limit switch is triggered.
+            # TODO TODO how to debounce this, s.t. if switch is only
+            # intermittently triggered, causing machine to stop, but never
+            # returning true on the call, we still detect hit?
+            count = 0
+            last_z2 = None
+            while True:
+                position = self.getCurrentPosition()
+                z2 = position[-1]
+                # TODO np.close in case it gets just under?
+                if z2 >= z2_max:
+                    print('reached z2 max travel')
+                    raise errs.SurfaceNotFoundError
+
+                elif self.z2_limit():
+                    print('hit z2 limit')
+                    raise errs.FlyManipulatorCrashError
+
+                # TODO TODO just want to detect if:
+                # 1) halted (need to know this even if #2 isn't satisfied)
+                # 2) Z2 caused it
+                # ...but it really not clear there is a direct way to detect
+                # that
+                # To debounce
+                # TODO maybe just handle this in smoothie config?
+                if count % 1000 == 0:
+                    if z2 == last_z2:
+                        print('we have not moved. calling a crash')
+                        raise errs.FlyManipulatorCrashError
+
+                    last_z2 = z2
+                    print('looping')
+
+                # TODO why'd this seem to fail only after adding
+                # time.sleep(0.01) here?
+                count += 1
+
+        # TODO remove. looks like this won't be useful.
+        # (unless handle in other serial calls, maybe)
+        except errs.FlyManipulatorCrashError:
+            print('calling m999')
+            found_surface = True
+            self.smoothie.sendCmd('M999\n')
+            print('homing')
+            self.home()
+
+        print('after homing')
+
+        # TODO use smoothie zprobe module?
+
+        # TODO necessary to restore speed after M999?
+        # Restore old speed
+        self.smoothie.sendSyncCmd('M121\n')
+
+        self.z2_to_worksurface = z2 + thickness
+        print('Reference surface found with Z2 at {}'.format(
+            self.z2_to_worksurface))
+
+        
     def release(self):
+        # TODO TODO
+        # was just doing this so other commands would go through...
+        # but maybe they still do? or maybe those changes happen on a halt
+        # anyway? (so maybe just save M999 for init, where we'd home anyway?)
+        self.smoothie.sendCmd('M999\n')
+
         self.light(False)
         self.flyManipVac(False)
         self.smallPartManipVac(False)
@@ -214,6 +310,7 @@ class MAPLE:
 
         # Turns off the stepper motors.
         self.smoothie.sendSyncCmd('M84\n')
+
         self.smoothie.close()
 
         if self.cam_enabled:
@@ -221,7 +318,14 @@ class MAPLE:
 
 
     def home(self):
+        # TODO delete me
+        #print('z2_limit: {}'.format(self.z2_limit()))
+        #
+
         self.smoothie.sendSyncCmd("G28\n")
+        # TODO delete me
+        #print('z2_limit: {}'.format(self.z2_limit()))
+        #
         self.smoothie.sendSyncCmd("G01 F{0}\n".format(self.travelSpeed))
         self.currentPosition = np.array([0., 0., 0., 0., 0.])
 
@@ -251,18 +355,16 @@ class MAPLE:
         # M114.2 returns string like:
         # "ok MCS: X:0.0000 Y:0.0000 Z:0.0000 A:0.0000 B:0.0000"
         while True:
-            try:
-                positions = self.smoothie.sendCmdGetReply("M114.2\n").split(' ')
-                xPos  = float(positions[2].split(':')[1])
-                break
-            except:
+            # TODO just block until reply inside sendCmdGetReply?
+            # TODO do we have to repeat this command more than we otherwise
+            # would because we read partial replies? (fix if so)
+            reply = self.smoothie.sendCmdGetReply('M114.2\n')
+            if reply.startswith('ok MCS: '):
+                positions = [float(x.strip()[2:]) for x in reply.split(' ')[2:]]
+                return np.array(positions)
+
+            else:
                 time.sleep(0.01)
-        xPos  = float(positions[2].split(':')[1])
-        yPos  = float(positions[3].split(':')[1])
-        z0Pos = float(positions[4].split(':')[1])
-        z1Pos = float(positions[5].split(':')[1])
-        z2Pos = float(positions[6].split(':')[1])
-        return np.array( [ xPos, yPos, z0Pos, z1Pos, z2Pos ] )
 
 
     def moveXY(self, pt):
@@ -283,8 +385,7 @@ class MAPLE:
 
     def moveXYSpd(self, pt, spd):
         """
-        Coordinate-move command with added mandatory speed (Also updates default
-        speed)
+        Coordinate-move command with added mandatory speed
         """
         if not self.isPtInBounds((pt[0], pt[1], 0., 0., 0.)):
             raise ValueError('point out of bounds (less than zero, ' +
@@ -325,6 +426,9 @@ class MAPLE:
         self.currentPosition[4] = pt[4]
 
 
+    # TODO TODO and have all movement commands take a kwarg speed that adds the 
+    # F<N> option to the gcode line, with <N> being the feed rate for that move
+    # in mm/min
     # TODO refactor this single coordinate fns to call a common fn with diff
     # args (move_idx / move_coord / move_dim or something)
     def moveX(self, position):
@@ -360,11 +464,31 @@ class MAPLE:
         self.currentPosition[3] = position
 
 
-    def moveZ2(self, position):
+    # TODO maybe take a fraction by which to slow down default feed rate as
+    # opposed to speed? might be easier to reason about for the user (me)
+    # TODO TODO TODO so are none of the sendSyncCmd calls here actually raising 
+    # FlyManipulatorCrashError?
+    def moveZ2(self, position, speed=None):
         """Moves the fly manipulator effector.
         """
-        cmd = 'G01 B{}\n'.format(position)
+        # TODO is there just a non-modal gcode that will set feed rate only for
+        # this command? (as opposed to having to push and pop current rate)
+        if speed is not None:
+            # "Push" current feed rate (to restore later)
+            self.smoothie.sendSyncCmd('M120\n')
+
+        cmd = 'G01 B{}'.format(position)
+
+        if speed is not None:
+            # TODO assert numeric w/ approp representation / formattable
+            cmd += ' F{}'.format(speed)
+
+        cmd += '\n'
         self.smoothie.sendSyncCmd(cmd)
+
+        if speed is not None:
+            self.smoothie.sendSyncCmd('M121\n')
+
         self.currentPosition[4] = position
 
 
@@ -397,10 +521,10 @@ class MAPLE:
         # Save current speed
         self.smoothie.sendSyncCmd("M120\n")
 
-        cmd = "G01 X{0[0]} Y{0[1]} Z{0[2]} A{0[3]} B{0[4]} F{1}\n".format(pt, spd)
-        self.smoothie.sendSyncCmd(cmd)
+        cmd = "G01 X{0[0]} Y{0[1]} Z{0[2]} A{0[3]} B{0[4]} F{1}\n".format(
+            pt, spd)
 
-        self.dwell_ms(1)
+        self.smoothie.sendSyncCmd(cmd)
 
         # Reset speed to old value
         self.smoothie.sendSyncCmd("M121\n")
@@ -512,6 +636,8 @@ class MAPLE:
         return trylower
 
 
+    # TODO it does seem this function doesn't work, b/c moves err on limit
+    # switch hit (so, fix, or generally handle limit switch hits some other way)
     def lowerCare(self, z, descendZ=9, retreatZ=18):        # z: depth of descend; descendZ: number of careful steps to reach depth z; retreatZ: RELATIVE height retreat upon hit
         """
         Step-by-step lowering of fly-manipulating end effector with
@@ -522,18 +648,24 @@ class MAPLE:
             return
         if descendZ > z:
             print 'descendZ larger than Z - correcting...'
+            # TODO but what is to say this has changed the inequality?
             descendZ = z-1
+
         posbegin = self.getCurrentPosition()
-        self.moveZ(pt=[posbegin[0],posbegin[1],10,0,z-descendZ])
+        self.moveZ2(z - descendZ, speed=200)
+        hit_limit = False
         for i in range(1, descendZ+2):
             self.dwell_ms(1)
             self.moveRel(pt=[0,0,0,0,1])
-            careful = self.getLimit()
-            if careful == 1:
+
+            if self.z2_limit():
+                hit_limit = True
                 self.moveRel(pt=[0,0,0,0,-retreatZ])
                 break
+
         posend = self.getCurrentPosition
-        return {'pos.begin': posbegin, 'pos.end': posend, 'limit': careful}
+        return {'pos.begin': posbegin, 'pos.end': posend,
+            'hit_limit': hit_limit}
 
 
     def detectMotionAt(self, camcoordX, camcoordY, camcoordZ):
@@ -545,19 +677,38 @@ class MAPLE:
         return flyremaining
 
 
-    def getLimit(self):     # if this breaks look at position of limit max B in the string!
-        limitgot = 0
-        while limitgot < 10:
+    # TODO require smoothie is sufficiently initialized first?
+    def z2_limit(self):
+        # TODO could generalize to check other switches by changing an arg
+        # but are switches not pretty much always going to break other commands,
+        # as things are now?
+        switch_pin_str = 'P1.29'
+        chars_between = 1
+        while True:
+            time.sleep(0.1)
+
+            reply = self.smoothie.sendCmdGetReply('M119\n')
+            print(reply)
+
+            start = reply.find(switch_pin_str)
+            idx = start + len(switch_pin_str) + chars_between
+            if start == -1 or idx >= len(reply):
+                #
+                print('malformed input to z2_limit')
+                #
+                continue
+
+
+            # TODO there was a valueerror here at least once:
+            # delete try after fixing cause
+            # 
             try:
-                templimit = str(self.smoothie.sendCmdGetReply("M119\n").split(' '))
-                limit = int(templimit[150])
-                limitgot = 10
-            # TODO TODO catch specific error. make alg more clear.
-            except:
-                limitgot = limitgot + 1
-        if limit == 1:
-            print 'Fly manipulator limit switch hit.'
-        return limit
+                return bool(int(reply[idx]))
+
+            except ValueError:
+                # TODO retry?
+                print('faulty reply in z2_limit: {}'.format(reply))
+                raise
 
 
     def isPtInBounds(self, pt):
@@ -602,6 +753,8 @@ class MAPLE:
         '''
 
 
+    # TODO TODO do these still switch if a limit switch was hit?
+    # (and board is replying !! to everthing, as it seems it does)
     def light(self, state):
         """Controls light-circle LED around camera
         """

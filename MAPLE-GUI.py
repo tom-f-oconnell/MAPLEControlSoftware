@@ -103,7 +103,9 @@ Move +/- 10mm:
 
 Modifier keys:
     SHIFT       - Move 1mm instead
-    CTRL        - Move 0.1mm instead"""
+    CTRL        - Move 0.1mm instead
+    
+':' to execute code in a debugger shell"""
     elif( key == ord('h') ):
         robot.home()
     elif( key == ord('g') ):
@@ -227,6 +229,13 @@ Modifier keys:
         else:
             warnings.warn('Camera is disabled in config. Cannot save image.')
 
+    elif key == ord(':'):
+        print("Press Ctrl-D to exit the debugger, or 'c' to continue.")
+        import ipdb
+        ipdb.set_trace()
+
+    # TODO suppress this message on modifier keys
+    # and otherwise convert to char first
     else:
         if (( key != -1 ) and ( key != 27) ):
             print "Unknown keypress:", key

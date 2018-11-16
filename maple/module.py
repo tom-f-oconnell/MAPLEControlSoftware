@@ -36,6 +36,9 @@ class Module(ABC):
         # Defined from 0 at the bottom of bounding box, in Z dimension.
         self.flymanip_working_height = flymanip_working_height
 
+        # TODO TODO define an arbitrary size set of height reference points
+        # , that can be probe with either z0 or z2
+
     def effectors_to_travel_height(self):
         # TODO config option to set buffer above module height?
         if self.robot is None:
@@ -530,7 +533,7 @@ class Morgue(Sink):
         dish.
         """
         extent = (diameter, diameter, height)
-        flymanip_working_height = 18
+        flymanip_working_height = 28
         super(Morgue, self).__init__(robot, offset, extent,
               flymanip_working_height)
        
@@ -563,7 +566,7 @@ class Morgue(Sink):
 
             self.robot.flyManipVac(False)
             self.robot.flyManipAir(True)
-            self.robot.dwell_ms(2000)
+            self.robot.dwell_ms(250)
             self.robot.flyManipAir(False)
 
             self.effectors_to_travel_height()
@@ -594,23 +597,53 @@ class FlyPlate(Array):
         # TODO get from dimension drawing? this was just roughly measured
         to_first_well = (11.5, 13.0)
         well_spacing = 9.0
-        # TODO test / play around with this
-        flymanip_working_height = 15.0
+        # Tried 15. With continuous vacuum, did not work very well.
+        # 13 got 1/8.
+        # 12 got 1/7.
+        # 11 triggered limit switch, but unclear if that was b/c flyplate being
+        # offset or not. If not, could make switch a little less sensitive by
+        # moving rod.
+        # TODO TODO TODO so fly manipulator can not seem to go more than about
+        # 6mm into a well (from z-maximum of flyplate), because of what seems
+        # like sterics with the dispensing needle.
+        # 1) is there a replacement part where this would not be an issue
+        #    (longer needle, etc?)
+        # 2) can the material just be filed away on this part?
+        # (and it seems much of the difficulty of getting flies is at the
+        # bottom)
+        # TODO i thought ~6mm was true (from top=19), but it doesn't seem nearly
+        # as compressed at 12.5 (and 19 - 12.5 = 6.5 > 6)...
+        # position error?? or did i just est. wrong before?
+        # TODO TODO I think maybe I just need to recalibrate?
+        # (if not, then a working height of 8-9 should be best)
+        flymanip_working_height = 10.5
 
         super(FlyPlate, self).__init__(robot, offset, extent,
               flymanip_working_height, n_cols, n_rows,
               to_first_well, well_spacing, loaded=loaded)
 
 
+    # TODO TODO maybe implement programs of increasing severity, s.t.
+    # calling script can increase severity if it detects that downstream it is
+    # not getting flies (even w/o sensor on flyplate)
+    # TODO TODO quantitatively compare a variety of strategies here,
+    # and pick one, considering also the relative cost of not
+    # getting a fly (vs. time of strategy)
     def get(self, xy, ij):
-        # TODO TODO just add a verbose flag, to print when using on a real robot
+        plunges = 3
+        # Spent at the bottom of the plunge.
+        between_plunges_ms = 500
+        after_last_plunge_ms = 3000
+        # Current Z default feed rates are 1000 mm/min for my alternate slides
+        # and 5000 mm/min for the igus slides.
+        plunge_speed_mm_per_min = 300
+
         #if self.robot is None:
+        # TODO TODO move this to logging output (as with other prints)
         print('Getting fly from plate {} ({})'.format(ij, xy))
         #    return
 
         if self.robot is not None:
-            # TODO any particular reason air is turned on in cft.homeWithdraw?
-            # pinswap thing? mistake?
             self.robot.flyManipVac(True)
             self.robot.flyManipAir(False)
             self.robot.moveXY(xy)
@@ -620,10 +653,23 @@ class FlyPlate(Array):
             z0 = self.robot.z2_to_worksurface
             zw = z0 - self.flymanip_working_height
             print('Moving fly manipulator to working height: {}'.format(zw))
-            self.robot.moveZ2(zw)
 
-            # TODO maybe copy vacuum burst thing in cft
-            self.robot.dwell_ms(3000)
+            z_mesh = z0 - (self.extent[2] - 1.58)
+            # TODO TODO support making the plunges with a lower speed
+            # BUT without setting that lower speed to the default!!
+            for _ in range(plunges):
+                self.robot.moveZ2(zw)
+                self.robot.dwell_ms(between_plunges_ms)
+
+                # TODO maybe copy vacuum burst thing in cft
+
+                # Mesh is only down from the top of the module by one 1/16"
+                # piece of plastic holding it in place, so this is the plane of
+                # the mesh.
+                self.robot.moveZ2(z_mesh, speed=plunge_speed_mm_per_min)
+
+            self.robot.moveZ2(zw)
+            self.robot.dwell_ms(after_last_plunge_ms)
 
 
     def put(self, xy, ij):
@@ -645,11 +691,10 @@ class FlyPlate(Array):
             print('Moving fly manipulator to working height: {}'.format(zw))
             self.robot.moveZ2(zw)
 
-            # TODO TODO lower to working height
             # TODO could also experiment w/ just leaving vac on
             self.robot.flyManipVac(False)
             self.robot.flyManipAir(True)
-            self.robot.dwell_ms(3000)
+            self.robot.dwell_ms(250)
 
             # reason not to turn air off?
             self.robot.flyManipAir(False)
