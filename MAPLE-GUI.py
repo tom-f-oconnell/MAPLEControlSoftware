@@ -38,7 +38,7 @@ def printPosition(robot, img):
     cv2.line(img, crosshairPts[2], crosshairPts[3], (255, 255, 255), 1)
 
 # And pass in the ZAxisBaseAddress here
-robot = maple.robotutil.MAPLE(configFile)
+robot = maple.robotutil.MAPLE(configFile, home=False)
 # TODO maybe don't home / set valves in constructor, to not surprise people
 
 if robot.cam_enabled:
@@ -193,7 +193,7 @@ Modifier keys:
 
     elif key == ord('x'):
         unused_fet = not unused_fet
-        robot.unused_fet(unused_fet)
+        robot.fly_vac_highflow(unused_fet)
 
     elif( key == 1 ): # ctrl-a
         robot.moveRel(np.array([0.1, 0.0, 0.0, 0.0, 0.0]))

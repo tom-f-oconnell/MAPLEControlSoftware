@@ -804,7 +804,7 @@ class MAPLE:
         self.smoothie.sendCmd(cmd)
 
 
-    def unused_fet(self, state):
+    def fly_vac_highflow(self, state):
         if state:
             cmd = "M50\n"
         else:

@@ -4,8 +4,8 @@
 
 # NOTE Lines must not exceed 132 characters
 ## Robot module configurations : general handling of movement G-codes and slicing into moves
-default_feed_rate                            4000             # Default rate ( mm/minute ) for G1/G2/G3 moves
-default_seek_rate                            4000             # Default rate ( mm/minute ) for G0 moves
+default_feed_rate                            15000             # Default rate ( mm/minute ) for G1/G2/G3 moves
+default_seek_rate                            15000             # Default rate ( mm/minute ) for G0 moves
 mm_per_arc_segment                           0.0              # Fixed length for line segments that divide arcs 0 to disable
 mm_max_arc_error                             0.01             # The maximum error for line segments that divide arcs 0 to disable
                                                               # note it is invalid for both the above be 0
@@ -43,7 +43,7 @@ epsilon_steps_per_mm                         800
 
 # Planner module configuration : Look-ahead and acceleration configuration
 planner_queue_size                           32               # DO NOT CHANGE THIS UNLESS YOU KNOW EXACTLY WHAT YOU ARE DOING
-acceleration                                 166             # Acceleration in mm/second/second.
+acceleration                                 300             # Acceleration in mm/second/second.
 #z_acceleration                              500              # Acceleration for Z only moves in mm/s^2, 0 uses acceleration which is the default. DO NOT SET ON A DELTA
 junction_deviation                           0.05             # Similar to the old "max_jerk", in millimeters,
                                                               # see https://github.com/grbl/grbl/blob/master/planner.c
@@ -58,8 +58,8 @@ microseconds_per_step_pulse                  1                # Duration of step
 base_stepping_frequency                      100000           # Base frequency for stepping
 
 # Cartesian axis speed limits
-x_axis_max_speed                             12000            # mm/min
-y_axis_max_speed                             12000            # mm/min
+x_axis_max_speed                             15000            # mm/min
+y_axis_max_speed                             15000            # mm/min
 # TODO factor in maximum motor speed of 426 RPM for 28STH32 NEMA-11 motor from
 # phidgets
 z_axis_max_speed                             5000              # mm/min
@@ -70,19 +70,30 @@ alpha_dir_pin                                0.5!              # Pin for alpha s
 alpha_en_pin                                 0.4              # Pin for alpha enable pin
 # TODO some reason these were at 1, not 1.5?
 alpha_current                                1.0              # X stepper motor current
-alpha_max_rate                               5000.0          # mm/min
+# MNEMA17-60 doesn't seem to list a maximum rotation rate.
+# Assuming a maximum rotation rate of about 3000 rpm (conservative wrt ~4500 on
+# Phidget motor that seems to be better suited to higher speeds):
+# And with these pulleys, one rotation is again 40mm, so 120,000 mm/min at
+# assumed max rpm.
+alpha_max_rate                               60000.0          # mm/min
 
 beta_step_pin                                2.1              # Pin for beta stepper step signal
 beta_dir_pin                                 0.11             # Pin for beta stepper direction
 beta_en_pin                                  0.10             # Pin for beta enable
 beta_current                                 1.0              # Y stepper motor current
-beta_max_rate                                5000.0          # mm/min
+beta_max_rate                                60000.0          # mm/min
 
 gamma_step_pin                               2.2              # Pin for gamma stepper step signal
 gamma_dir_pin                                0.20             # Pin for gamma stepper direction
 gamma_en_pin                                 0.19             # Pin for gamma enable
 gamma_current                                0.67              # Z stepper motor current
-gamma_max_rate                               1000.0            # mm/min
+
+# At 3000.0 mm/min, there was a visible position error (leadscrew / coupler slip maybe)
+# As low as 2000.0 mm/min, my cheap DIY slides started making noises.
+# 1600 too... (maybe higher speed just damaged it, and now it will always make noise?)
+# Trying old 1000 (that worked w/o noise previously) again...
+# And that worked fine.
+gamma_max_rate                               1200.0            # mm/min
 
 # TODO how is this assigned to the "A" axis? is it?
 # A axis
@@ -90,14 +101,14 @@ delta_step_pin                               2.3              # Pin for delta st
 delta_dir_pin                                0.22             # Pin for delta stepper direction
 delta_en_pin                                 0.21             # Pin for delta enable
 delta_current                                0.67              # Z stepper motor current
-delta_max_rate                               1000.0            # mm/min
+delta_max_rate                               1200.0            # mm/min
 
 # B axis
 epsilon_step_pin                               2.8              # Pin for delta stepper step signal
 epsilon_dir_pin                                2.13             # Pin for delta stepper direction
 epsilon_en_pin                                 4.29             # Pin for delta enable
 epsilon_current                                0.67              # Z stepper motor current
-epsilon_max_rate                               1000.0            # mm/min
+epsilon_max_rate                               1200.0            # mm/min
 
 ## System configuration
 # Serial communications configuration ( baud rate defaults to 9600 if undefined )
@@ -128,7 +139,7 @@ endstop.minx.homing_position                 -2               # the cartesian co
 endstop.minx.axis                            X                # the axis designator
 # TODO is "times out" accurate? way to set this from soft_endstop limits?
 endstop.minx.max_travel                      1200             # the maximum travel in mm before it times out
-endstop.minx.fast_rate                       80               # fast homing rate in mm/sec
+endstop.minx.fast_rate                       70               # fast homing rate in mm/sec
 endstop.minx.slow_rate                       15               # slow homing rate in mm/sec
 endstop.minx.retract                         2                # bounce off endstop in mm
 
@@ -138,7 +149,7 @@ endstop.miny.homing_direction                home_to_min      # direction it mov
 endstop.miny.homing_position                 -2               # the cartesian coordinate this is set to when it homes
 endstop.miny.axis                            Y                # the axis designator
 endstop.miny.max_travel                      275              # the maximum travel in mm before it times out
-endstop.miny.fast_rate                       90               # fast homing rate in mm/sec
+endstop.miny.fast_rate                       70               # fast homing rate in mm/sec
 endstop.miny.slow_rate                       15               # slow homing rate in mm/sec
 endstop.miny.retract                         2                # bounce off endstop in mm
 
@@ -209,6 +220,7 @@ switch.gpio0.input_off_command        M41
 switch.gpio0.input_on_command         M40
 switch.gpio0.output_pin               1.23
 switch.gpio0.output_type              digital
+switch.gpio0.failsafe_set_to          0
 
 # Part manipulator - Air
 switch.gpio1.enable                   true
@@ -216,6 +228,7 @@ switch.gpio1.input_off_command        M43
 switch.gpio1.input_on_command         M42
 switch.gpio1.output_pin               2.4
 switch.gpio1.output_type              digital
+switch.gpio1.failsafe_set_to          0
 
 # Fly manipulator - Vacuum
 switch.gpio2.enable                   true
@@ -223,6 +236,7 @@ switch.gpio2.input_off_command        M45
 switch.gpio2.input_on_command         M44
 switch.gpio2.output_pin               2.7
 switch.gpio2.output_type              digital
+switch.gpio2.failsafe_set_to          0
 
 # Fly manipulator - Air
 switch.gpio3.enable                   true
@@ -230,6 +244,7 @@ switch.gpio3.input_off_command        M47
 switch.gpio3.input_on_command         M46
 switch.gpio3.output_pin               2.5
 switch.gpio3.output_type              digital
+switch.gpio3.failsafe_set_to          0
 
 # LED illuminator
 switch.gpio4.enable                   true
@@ -237,11 +252,18 @@ switch.gpio4.input_off_command        M49
 switch.gpio4.input_on_command         M48
 switch.gpio4.output_pin               2.6
 switch.gpio4.output_type              digital
+switch.gpio4.failsafe_set_to          0
 
-# Unused FET
+# High flow vacuum valve
+# 24V. Driven through an inverting isolator to another MOSFET, which can operate
+# with a separate (24V) power supply.
 switch.gpio5.enable                   true
-switch.gpio5.input_off_command        M51
-switch.gpio5.input_on_command         M50
+switch.gpio5.input_off_command        M50
+switch.gpio5.input_on_command         M51
 switch.gpio5.output_pin               1.22
 switch.gpio5.output_type              digital
+# TODO both of these options supported in this build of smoothie?
+switch.gpio5.startup_state            true
+# TODO maybe the docs are wrong and this is also supposed to be true/false?
+switch.gpio5.failsafe_set_to          1
 
