@@ -93,6 +93,8 @@ class serialDevice:
             # TODO this won't be discovered until a few commands later though...
             # TODO is this ever triggered? (searching for right string?)
             #print('waitForOK output: {}'.format(output))
+            # TODO TODO TODO print last height in this case, for faster setting
+            # of appropriate working height
             if output.startswith('Limit switch B was hit'):
                 raise errs.FlyManipulatorCrashError
 

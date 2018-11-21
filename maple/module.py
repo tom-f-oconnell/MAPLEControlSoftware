@@ -15,6 +15,7 @@ import pickle
 
 import numpy as np
 
+
 # All units in millimeters.
 ABC = abc.ABCMeta('ABC', (object,), {})
 
@@ -66,6 +67,19 @@ class Module(ABC):
             print('Moving fly manipulator to travel height: {}'.format(z2_t))
             self.robot.moveZ2(z2_t)
 
+    def contains(self, xy):
+        """Returns True if coarse rectangular outline of module contains point,
+        False otherwise.
+        """
+        x, y = xy
+        # Ignores calibration for now
+        if (x >= self.offset[0] and x <= self.offset[0] + self.extent[0] and
+            y >= self.offset[1] and y <= self.offset[1] + self.extent[1]):
+
+            return True
+        else:
+            return False
+        
     # TODO so should this still be able to hold a point?
     # may depend on whether i want to do each transform in module, or all at
     # workspace level?
@@ -140,6 +154,7 @@ class Array(Source, Sink):
         self.full = np.full((self.n_cols, self.n_rows), loaded)
 
         self.correction = None
+        self.position_correction = position_correction
 
         if position_correction:
             self.fit_correction()
@@ -165,7 +180,7 @@ class Array(Source, Sink):
         # constructor, and just don't construct objects before it's time to
         # calibrate them?
         if self.correction is None and self.position_correction:
-            self._build_correction()
+            self.fit_correction()
 
         self.effectors_to_travel_height()
         xy = self.anchor_center(i, j)
@@ -183,6 +198,41 @@ class Array(Source, Sink):
         self.full[i, j] = False
 
 
+    # TODO rename to calibration?
+    def clear_correction(self):
+        """
+        """
+        self.correction = None
+
+        cls = self.__class__.__name__
+        workspace_file = os.path.expanduser('~/.maple_workspace.p')
+
+        if not os.path.exists(workspace_file):
+            return
+
+        with open(workspace_file, 'rb') as f:
+            corrections = pickle.load(f)
+
+        to_remove = None
+        if cls in corrections:
+            for i, (ox, oy, data) in enumerate(corrections[cls]):
+                if np.allclose([ox, oy], self.offset):
+                    # TODO TODO flag this one for removal from
+                    # corrections[cls]
+                    to_remove = i
+                    break
+                    #print('Found saved corrections for this module.')
+
+        if to_remove is None:
+            return
+
+        corrections[cls].pop(to_remove)
+        with open(workspace_file, 'wb') as f:
+            pickle.dump(corrections, f)
+
+        
+    # TODO TODO ideally we'd always be approaching from the direction we are
+    # approaching during the experiment, to minimize backlash
     def fit_correction(self):
         """
         """
@@ -256,9 +306,16 @@ class Array(Source, Sink):
 
         self.effectors_to_travel_height()
 
-        one_side = (0, 0)
-        other_side = (self.n_cols - 1, self.n_rows - 1)
-        index_coords = (one_side, other_side)
+        if self.n_rows == 1 or self.n_cols == 1:
+            one_side = (0, 0)
+            other_side = (self.n_cols - 1, self.n_rows - 1)
+            index_coords = (one_side, other_side)
+
+        else:
+            index_coords = []
+            for i in (0, self.n_cols - 1):
+                for j in (0, self.n_rows - 1):
+                    index_coords.append((i,j))
 
         # TODO allow motion in Z while correcting XY in err_from_centering case?
         # (to check effector can enter hole)
@@ -616,7 +673,7 @@ class FlyPlate(Array):
         # position error?? or did i just est. wrong before?
         # TODO TODO I think maybe I just need to recalibrate?
         # (if not, then a working height of 8-9 should be best)
-        flymanip_working_height = 10.5
+        flymanip_working_height = 10.8
 
         super(FlyPlate, self).__init__(robot, offset, extent,
               flymanip_working_height, n_cols, n_rows,
@@ -630,13 +687,14 @@ class FlyPlate(Array):
     # and pick one, considering also the relative cost of not
     # getting a fly (vs. time of strategy)
     def get(self, xy, ij):
-        plunges = 3
+        # TODO fix. this currently seems to do n+1 plunges
+        plunges = 2
         # Spent at the bottom of the plunge.
         between_plunges_ms = 500
-        after_last_plunge_ms = 3000
+        after_last_plunge_ms = 2000
         # Current Z default feed rates are 1000 mm/min for my alternate slides
         # and 5000 mm/min for the igus slides.
-        plunge_speed_mm_per_min = 300
+        plunge_speed_mm_per_min = 500
 
         #if self.robot is None:
         # TODO TODO move this to logging output (as with other prints)
@@ -657,7 +715,7 @@ class FlyPlate(Array):
             z_mesh = z0 - (self.extent[2] - 1.58)
             # TODO TODO support making the plunges with a lower speed
             # BUT without setting that lower speed to the default!!
-            for _ in range(plunges):
+            for _ in range(plunges - 1):
                 self.robot.moveZ2(zw)
                 self.robot.dwell_ms(between_plunges_ms)
 
@@ -669,6 +727,10 @@ class FlyPlate(Array):
                 self.robot.moveZ2(z_mesh, speed=plunge_speed_mm_per_min)
 
             self.robot.moveZ2(zw)
+            self.robot.fly_vac_highflow(True)
+            # TODO make configurable
+            self.robot.dwell_ms(600)
+            self.robot.fly_vac_highflow(False)
             self.robot.dwell_ms(after_last_plunge_ms)
 
 

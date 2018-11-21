@@ -71,6 +71,13 @@ while ( key != 27 ): # ESC to exit
                 img = cv2.resize(robot.captureImage(), imgSize)
             startTime = time.time()
 
+    # TODO delete me
+    #print('currentPosition:', robot.currentPosition)
+    # TODO TODO update maxExtents, wherever they are loaded from
+    # to reflect current size
+    #print('maxExtents:', robot.maxExtents)
+    #
+
     # Update the position and show image every time, though
     printPosition(robot, img)
     cv2.imshow("MAPLE", img)
@@ -117,7 +124,12 @@ Modifier keys:
             newPosition = np.array([0., 0., 0., 0., 0.])
             i=0
             for coord in coords:
-                newPosition[i] = float(coord)
+                try:
+                    newPosition[i] = float(coord)
+                except ValueError:
+                    print('could not parse float')
+                    continue
+
                 i = i+1
             robot.moveTo(newPosition)
 

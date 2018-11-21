@@ -4,8 +4,8 @@
 
 # NOTE Lines must not exceed 132 characters
 ## Robot module configurations : general handling of movement G-codes and slicing into moves
-default_feed_rate                            15000             # Default rate ( mm/minute ) for G1/G2/G3 moves
-default_seek_rate                            15000             # Default rate ( mm/minute ) for G0 moves
+default_feed_rate                            16000             # Default rate ( mm/minute ) for G1/G2/G3 moves
+default_seek_rate                            16000             # Default rate ( mm/minute ) for G0 moves
 mm_per_arc_segment                           0.0              # Fixed length for line segments that divide arcs 0 to disable
 mm_max_arc_error                             0.01             # The maximum error for line segments that divide arcs 0 to disable
                                                               # note it is invalid for both the above be 0
@@ -43,7 +43,7 @@ epsilon_steps_per_mm                         800
 
 # Planner module configuration : Look-ahead and acceleration configuration
 planner_queue_size                           32               # DO NOT CHANGE THIS UNLESS YOU KNOW EXACTLY WHAT YOU ARE DOING
-acceleration                                 300             # Acceleration in mm/second/second.
+acceleration                                 400             # Acceleration in mm/second/second.
 #z_acceleration                              500              # Acceleration for Z only moves in mm/s^2, 0 uses acceleration which is the default. DO NOT SET ON A DELTA
 junction_deviation                           0.05             # Similar to the old "max_jerk", in millimeters,
                                                               # see https://github.com/grbl/grbl/blob/master/planner.c
@@ -58,8 +58,8 @@ microseconds_per_step_pulse                  1                # Duration of step
 base_stepping_frequency                      100000           # Base frequency for stepping
 
 # Cartesian axis speed limits
-x_axis_max_speed                             15000            # mm/min
-y_axis_max_speed                             15000            # mm/min
+x_axis_max_speed                             16000            # mm/min
+y_axis_max_speed                             16000            # mm/min
 # TODO factor in maximum motor speed of 426 RPM for 28STH32 NEMA-11 motor from
 # phidgets
 z_axis_max_speed                             5000              # mm/min
@@ -139,7 +139,7 @@ endstop.minx.homing_position                 -2               # the cartesian co
 endstop.minx.axis                            X                # the axis designator
 # TODO is "times out" accurate? way to set this from soft_endstop limits?
 endstop.minx.max_travel                      1200             # the maximum travel in mm before it times out
-endstop.minx.fast_rate                       70               # fast homing rate in mm/sec
+endstop.minx.fast_rate                       50               # fast homing rate in mm/sec
 endstop.minx.slow_rate                       15               # slow homing rate in mm/sec
 endstop.minx.retract                         2                # bounce off endstop in mm
 
@@ -149,7 +149,7 @@ endstop.miny.homing_direction                home_to_min      # direction it mov
 endstop.miny.homing_position                 -2               # the cartesian coordinate this is set to when it homes
 endstop.miny.axis                            Y                # the axis designator
 endstop.miny.max_travel                      275              # the maximum travel in mm before it times out
-endstop.miny.fast_rate                       70               # fast homing rate in mm/sec
+endstop.miny.fast_rate                       50               # fast homing rate in mm/sec
 endstop.miny.slow_rate                       15               # slow homing rate in mm/sec
 endstop.miny.retract                         2                # bounce off endstop in mm
 
@@ -207,7 +207,7 @@ corexy_homing                               true            # set to true if hom
 # to extruder module (maybe something even more analagous?), rather than with
 # the extra axes (is the 6axis module what provides the functionality Dave
 # contracted for?)
-homing_order                                ZABYX              # x axis followed by y then z last
+homing_order                                BAZYX              # x axis followed by y then z last
 move_to_origin_after_home                   false              # move XY to 0,0 after homing
 #endstop_debounce_count                       100              # uncomment if you get noise on your endstops, default is 100
 #endstop_debounce_ms                          1                # uncomment if you get noise on your endstops, default is 1 millisecond debounce

@@ -216,13 +216,15 @@ class MAPLE:
         thickness (mm) is how high above the worksurface the reference point is
         speed in mm/min
         """
-        # TODO TODO TODO it would be nice to be able to define the Z2 lower
+        # TODO TODO TODO cache output of this function, optional reset
+        # TODO TODO it would be nice to be able to define the Z2 lower
         # limit switch as a zprobe, but I do still want the machine to stop by
         # default, if a crash can not explicitly be handled, and it's not clear
         # the z-probe module supports that. also, the docs say it can't be both
         # a zprobe and an endstop (why?)
         if xy is not None:
             self.moveXY(xy)
+            self.currentPosition[:2] = xy
             while True:
                 position = self.getCurrentPosition()
                 curr_xy = position[:2]
@@ -245,6 +247,10 @@ class MAPLE:
             while True:
                 position = self.getCurrentPosition()
                 z2 = position[-1]
+                # TODO TODO TODO it doesn't seem to timeout now
+                # (or it doesnt do so in a reasonable amount of time)
+                # fix! (set time limit?)
+                print('current z2 position: {}'.format(z2))
                 # TODO np.close in case it gets just under?
                 if z2 >= z2_max:
                     print('reached z2 max travel')
@@ -307,6 +313,7 @@ class MAPLE:
         self.smallPartManipVac(False)
         self.flyManipAir(False)
         self.smallPartManipAir(False)
+        self.fly_vac_highflow(False)
 
         # Turns off the stepper motors.
         self.smoothie.sendSyncCmd('M84\n')
@@ -318,14 +325,7 @@ class MAPLE:
 
 
     def home(self):
-        # TODO delete me
-        #print('z2_limit: {}'.format(self.z2_limit()))
-        #
-
         self.smoothie.sendSyncCmd("G28\n")
-        # TODO delete me
-        #print('z2_limit: {}'.format(self.z2_limit()))
-        #
         self.smoothie.sendSyncCmd("G01 F{0}\n".format(self.travelSpeed))
         self.currentPosition = np.array([0., 0., 0., 0., 0.])
 
