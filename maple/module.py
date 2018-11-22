@@ -40,6 +40,7 @@ class Module(ABC):
         # TODO TODO define an arbitrary size set of height reference points
         # , that can be probe with either z0 or z2
 
+
     def effectors_to_travel_height(self):
         # TODO config option to set buffer above module height?
         if self.robot is None:
@@ -66,6 +67,7 @@ class Module(ABC):
         else:
             print('Moving fly manipulator to travel height: {}'.format(z2_t))
             self.robot.moveZ2(z2_t)
+
 
     def contains(self, xy):
         """Returns True if coarse rectangular outline of module contains point,
@@ -151,6 +153,7 @@ class Array(Source, Sink):
         self.to_first_anchor = to_first_anchor
         # TODO let this be an arbitrary xy vector
         self.anchor_spacing = anchor_spacing
+        # TODO TODO change to float dtype to use np.nan for uncertainty?
         self.full = np.full((self.n_cols, self.n_rows), loaded)
 
         self.correction = None
@@ -169,9 +172,14 @@ class Array(Source, Sink):
     def put(self, xy, ij):
         pass
 
-
     # TODO possible to make it so they can implement either *_xy methods, or
     # override indices methods?
+
+    def set_full(self, i, i):
+        """
+        """
+        pass
+
 
     def put_indices(self, i, j):
         # TODO TODO TODO definitely refactor (so that my choice script doesnt
@@ -204,6 +212,9 @@ class Array(Source, Sink):
         """
         self.correction = None
 
+        # TODO TODO considate handing of this file (path, ser/deser)
+        # TODO and i'm leaning more towards putting a dict after the index of a
+        # given module / array, to make it easier to also use it for the state
         cls = self.__class__.__name__
         workspace_file = os.path.expanduser('~/.maple_workspace.p')
 

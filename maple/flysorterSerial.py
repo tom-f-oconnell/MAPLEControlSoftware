@@ -3,7 +3,19 @@
 ## See the LICENSE file for more details.
 ##
 
-## Serial port handling class
+# Serial communications class that is used for multiple devices.
+#
+# In MAPLE, the smoothie board is a serial devices. The smoothie is connected
+# directly via USB.
+#
+# Documentation is available online for G-codes (smoothie):
+#
+# http://smoothieware.org/supported-g-codes and
+# http://reprap.org/wiki/G-code
+#
+# This class is also used to communicate with the Fly Dispenser (if connected &
+# used).  The Dispenser, similar to the Smoothie, connects by USB and appears as
+# a COM port.
 
 import os
 import sys
@@ -14,21 +26,11 @@ import serial
 
 import errs
 
-# Serial communications class that is used for multiple devices.
-#
-# In MAPLE, the smoothie board is a serial devices. The smoothie is connected directly
-# via USB.
-#
-# Documentation is available online for G-codes (smoothie):
-#
-# http://smoothieware.org/supported-g-codes and
-# http://reprap.org/wiki/G-code
-#
-# This class is also used to communicate with the Fly Dispenser (if connected & used).
-# The Dispenser, similar to the Smoothie, connects by USB and appears as a COM port.
+
 
 class serialDevice:
-    """Serial class for FlySorter serial device (FlyDispenser, MAPLE robot, etc)."""
+    """Serial class for FlySorter serial device (FlyDispenser, MAPLE robot, etc)
+    """
 
     WaitTimeout = 3
     portName = ""
@@ -50,8 +52,8 @@ class serialDevice:
         #print "GSO:"
         output = ''
         while True:
-            # read() blocks for the timeout set above *if* there is nothing to read
-            #   otherwise it returns immediately
+            # read() blocks for the timeout set above *if* there is nothing to
+            # read otherwise it returns immediately
             byte = self.ser.read(1)
             if byte is None or byte == '':
                 break
@@ -114,20 +116,11 @@ class serialDevice:
                 ':'.join(x.encode('hex') for x in output)))
 
 
-    # Send a command to the device via serial port
-    # Asynchronous by default - doesn't wait for reply
+    # TODO check changes to sendCmd / sendSyncCmd don't break interface w/
+    # flysorter devices
+
     def sendCmd(self, cmd):
         #print "SC:", cmd
-        self.ser.write(cmd)
-        self.ser.flush()
-
-    # Send a command to the device via serial port
-    # Waits to receive reply of "ok" or "OK" via waitForOK()
-    # TODO TODO what is the point of checking for OK? it does not mean the
-    # command finished successfully (just that it was sent? sent and will be
-    # excecuted if nothing goes wrong in between? anything more?)
-    def sendSyncCmd(self, cmd):
-        #print "SSC:", cmd
         self.ser.flushInput()
         self.ser.write(cmd)
         self.ser.flush()
@@ -143,6 +136,13 @@ class serialDevice:
             # Otherwise, we ARE homing, so it doesn't matter.
             if not cmd.startswith('G28'):
                 raise
+
+
+    def sendSyncCmd(self, cmd):
+        #print "SSC:", cmd
+        self.sendCmd(cmd)
+        # This will wait for planning queue to be cleared before replying "ok"
+        self.sendCmd('M400\n')
 
 
     # Send a command and retrieve the reply
@@ -179,3 +179,4 @@ def availablePorts():
         except (OSError, serial.SerialException):
             pass
     return result
+
