@@ -15,6 +15,7 @@ import urllib2
 import importlib
 import pyclbr
 import atexit
+import sys
 
 import numpy as np
 import cv2
@@ -234,8 +235,12 @@ class MAPLE:
 
         # TODO move to max? minus some buffer?
         z2_max = 55
+        z2 = None
         try:
             self.moveZ2(z2_max, speed=speed)
+            # TODO TODO TODO maybe delete all logic below, now that synccmd
+            # seems to be working?
+
             # Need to check which of two things happens first:
             # 1) We reach the maximum Z2 position.
             # 2) The lower Z2 limit switch is triggered.
@@ -281,11 +286,14 @@ class MAPLE:
 
         # TODO remove. looks like this won't be useful.
         # (unless handle in other serial calls, maybe)
-        except errs.FlyManipulatorCrashError:
+        except errs.FlyManipulatorCrashError as e:
+            z2 = self.getCurrentPosition()[-1]
+
             print('calling m999')
             found_surface = True
             self.smoothie.sendCmd('M999\n')
             print('homing')
+            # TODO TODO can i just home z2?
             self.home()
 
         print('after homing')

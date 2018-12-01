@@ -143,7 +143,7 @@ class Sink(Module):
 class Array(Source, Sink):
     def __init__(self, robot, offset, extent, flymanip_working_height,
             n_cols, n_rows, to_first_anchor, anchor_spacing, loaded=False,
-            position_correction=True):
+            position_correction=True, calibration_approach_from=None):
 
         super(Array, self).__init__(robot, offset, extent,
             flymanip_working_height)
@@ -158,6 +158,11 @@ class Array(Source, Sink):
 
         self.correction = None
         self.position_correction = position_correction
+        if calibration_approach_from is not None:
+            if len(calibration_approach_from) != 2:
+                raise ValueError('only xy supported here')
+
+        self.calibration_approach_from = calibration_approach_from
 
         if position_correction:
             self.fit_correction()
@@ -175,11 +180,15 @@ class Array(Source, Sink):
     # TODO possible to make it so they can implement either *_xy methods, or
     # override indices methods?
 
-    def set_full(self, i, i):
+    def set_full(self, ij):
         """
         """
         pass
 
+    # TODO TODO provide facility to go to anchor centers, and manually play
+    # around with vacuum program to set one
+    # TODO maybe also provide way to specify certain parameters to be
+    # experimented with (may want machine vision to detect flies before this)
 
     def put_indices(self, i, j):
         # TODO TODO TODO definitely refactor (so that my choice script doesnt
@@ -197,6 +206,8 @@ class Array(Source, Sink):
         self.full[i, j] = True
 
 
+    # TODO TODO rename to something like get_by_indices to be clear that this is
+    # not returning the indices, but using the indices to get
     def get_indices(self, i, j):
         self.effectors_to_travel_height()
         # TODO rename to _position / coords / xy?
@@ -293,10 +304,6 @@ class Array(Source, Sink):
             pickle.dump(corrections, f)
 
 
-    def shape(self):
-        # TODO convert to property?
-        return (self.n_cols, self.n_rows)
-
     # TODO TODO provide general function like this (maybe even in Module)
     # where you can manually move robot to define the position of some key
     # points, and the best (x,y) offset (and maybe also some linear correction)
@@ -309,9 +316,6 @@ class Array(Source, Sink):
         distance between the anchor centers and where the Z2 end effector is,
         and enter those errors.
         """
-        # TODO TODO make this fn (alternatively?) work by moving robot in X,Y
-        # until centered, then measuring the distance moved as the error
-        # (could be more precise than kinda eyeballing w/ calipers)
         if self.robot is None:
             raise IOError('can not measure_errors without a robot')
 
@@ -330,6 +334,17 @@ class Array(Source, Sink):
 
         # TODO allow motion in Z while correcting XY in err_from_centering case?
         # (to check effector can enter hole)
+
+        # TODO TODO TODO to *really* keep backlash more constant, need to
+        # translate any moves back towards approach point into returns to
+        # approach point and shorter moves back
+        self.effectors_to_travel_height()
+        if self.calibration_approach_from is not None:
+            print(('Approaching calibration point from {}, to keep ' +
+                'backlash more constant.'.format(
+                self.calibration_approach_from)))
+
+            self.robot.moveXY(self.calibration_approach_from)
 
         points = []
         errors = []
@@ -416,6 +431,15 @@ class Array(Source, Sink):
             # TODO allow option to increase height before moving to next
             # point? (w/ flag to suppress as kwarg i think)
             self.effectors_to_travel_height()
+
+            # TODO TODO make calibration_approach_from pick a point along same
+            # direction, but only some minimum distance away, to save time
+            if self.calibration_approach_from is not None:
+                print(('Approaching calibration point from {}, to keep ' +
+                    'backlash more constant.'.format(
+                    self.calibration_approach_from)))
+
+                self.robot.moveXY(self.calibration_approach_from)
 
         # TODO TODO save correction under a hash of type + initial estimate
         # (then just keep initial estimate constant)
@@ -528,6 +552,18 @@ class Array(Source, Sink):
             return ideal_center.dot(self.correction) + ideal_center
         else:
             return ideal_center
+
+
+    # TODO also a fn to get full / not full. maybe just use kwarg on this fn
+    # after renaming get_indices
+    def all_index_pairs(self):
+        """Return a list of tuples of indexes of all positions in the array.
+        """
+        index_pairs = []
+        for i in range(self.n_cols):
+            for j in range(self.n_rows):
+                index_pairs.append((i,j))
+        return index_pairs
 
 
     # TODO maybe put in a fn to check bounds of offsets + paths
@@ -647,7 +683,8 @@ class Morgue(Sink):
 class FlyPlate(Array):
     """Model of 96-well fly storage plate made by FlySorter.
     """
-    def __init__(self, robot, offset, loaded=True):
+    def __init__(self, robot, offset, loaded=True,
+        calibration_approach_from=None):
         """
         loaded (bool): whether the plate starts as fully loaded. True if this is
             a plate that you are loading beforehand, False if you intend to load
@@ -688,7 +725,8 @@ class FlyPlate(Array):
 
         super(FlyPlate, self).__init__(robot, offset, extent,
               flymanip_working_height, n_cols, n_rows,
-              to_first_well, well_spacing, loaded=loaded)
+              to_first_well, well_spacing, loaded=loaded,
+              calibration_approach_from=calibration_approach_from)
 
 
     # TODO TODO maybe implement programs of increasing severity, s.t.
@@ -701,8 +739,8 @@ class FlyPlate(Array):
         # TODO fix. this currently seems to do n+1 plunges
         plunges = 2
         # Spent at the bottom of the plunge.
-        between_plunges_ms = 500
-        after_last_plunge_ms = 2000
+        between_plunges_ms = 250
+        after_last_plunge_ms = 1500
         # Current Z default feed rates are 1000 mm/min for my alternate slides
         # and 5000 mm/min for the igus slides.
         plunge_speed_mm_per_min = 500
