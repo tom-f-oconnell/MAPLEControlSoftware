@@ -38,3 +38,9 @@
     - also take values from robot config (workspace size?)
 
 - !!! change all onOff to positional arg, to unbreak that valve switching !!!
+
+- provide facilities to compile to gcode for fully open loop protocols
+  - (would also help to eliminate communication delays, so if we could
+    artificially constrain the planning buffer, it could measure the
+    relative contributions of planning / communications related delays)
+

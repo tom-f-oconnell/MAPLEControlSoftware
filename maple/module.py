@@ -250,9 +250,21 @@ class Array(Source, Sink):
 
 
     # TODO rename to calibration?
-    def clear_correction(self):
+    def clear_correction(self, ask=True):
         """
         """
+        # TODO or only delete things a certain age, and just mark other
+        # calibration data / results as invalid?
+        if ask:
+            while True:
+                c = raw_input('Really clear calibration? [y/n]').lower()
+                if c == 'y':
+                    break
+                elif c == 'n':
+                    return
+                else:
+                    print('Expecting either y or n')
+
         self.correction = None
 
         # TODO TODO considate handing of this file (path, ser/deser)
@@ -791,6 +803,11 @@ class FlyPlate(Array):
     # and pick one, considering also the relative cost of not
     # getting a fly (vs. time of strategy)
     def get(self, xy, ij):
+        # TODO TODO TODO ignore flymanip limit switch hits if they are only at
+        # very bottom of extension (well past where top surface of flyplate
+        # would be) to continue working in cases where bellows is able to trip
+        # the limit switch.
+
         # TODO fix. this currently seems to do n+1 plunges
         plunges = 2
         # Spent at the bottom of the plunge.
