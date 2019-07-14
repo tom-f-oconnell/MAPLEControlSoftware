@@ -21,6 +21,8 @@ ABC = abc.ABCMeta('ABC', (object,), {})
 workspace_filename = os.path.expanduser('~/.maple_workspace.p')
 
 class Module(ABC):
+    # TODO TODO generalize flymanip_working_height to all axes and store as
+    # enable flags in robot
     def __init__(self, robot, offset, extent, flymanip_working_height):
         self.robot = robot
 
@@ -47,27 +49,34 @@ class Module(ABC):
         if self.robot is None:
             return
 
-        # TODO add support for z1
-        z0_t = self.robot.z0_to_worksurface - self.extent[2] - 2
-        z2_t = self.robot.z2_to_worksurface - self.extent[2] - 2
         current_z = self.robot.currentPosition[2:]
         assert len(current_z) == 3
 
         # TODO implement s.t. multiple axes can move at once, while leaving
         # arbitrary combinations (according to some combination) where they are
-        if current_z[0] <= z0_t:
-            print('Z0 already above minimum travel height ({} <= {})'.format(
-                current_z[0], z0_t))
-        else:
-            print('Moving part manipulator to travel height: {}'.format(z0_t))
-            self.robot.moveZ0(z0_t)
 
-        if current_z[2] <= z2_t:
-            print('Z2 already above minimum travel height ({} <= {})'.format(
-                current_z[2], z2_t))
-        else:
-            print('Moving fly manipulator to travel height: {}'.format(z2_t))
-            self.robot.moveZ2(z2_t)
+        extra_room = 2
+        for i in range(3):
+            if not self.robot.enabled_z[i]:
+                continue
+
+            # TODO need to handle each zx offset to worksurface as w/
+            # enable flags to make this loop actually concise
+            # (array rather than have # in name)
+            if i == 0:
+                zx_to_worksurface = self.robot.z0_to_worksurface
+            elif i == 1:
+                zx_to_worksurface = self.robot.z1_to_worksurface
+            elif i == 2:
+                zx_to_worksurface = self.robot.z2_to_worksurface
+
+            zt = zx_to_worksurface - self.extent[2] - extra_room 
+            if current_z[i] <= zt:
+                print(('Z{} already above minimum travel height ({} <= {})'
+                    ).format(i, current_z[i], zt))
+            else:
+                print('Moving Z{} to travel height: {}'.format(i, zt))
+                self.robot.moveZn(i, zt)
 
 
     def contains(self, xy):
@@ -145,6 +154,13 @@ class Array(Source, Sink):
     def __init__(self, robot, offset, extent, flymanip_working_height,
             n_cols, n_rows, to_first_anchor, anchor_spacing, loaded=False,
             calibration_approach_from=None):
+
+        # TODO TODO TODO should i have some way of indicating 1)
+        # 1) some correction should not be fit and/or
+        # 2) fly manipulator effector is not available for finding Z
+        # ? handle elsewhere? just don't fuck w/ fly manip (Z2)?
+        # did i have this and then delete it for some reason?
+        # (position_correction kwarg passed in maple_pipettor)
 
         super(Array, self).__init__(robot, offset, extent,
             flymanip_working_height)
@@ -296,6 +312,7 @@ class Array(Source, Sink):
 
     # TODO ideally we'd always be approaching from the direction we are
     # approaching during the experiment, to minimize backlash
+    # TODO maybe rename to "calibrate"?
     def fit_correction(self):
         """
         """
@@ -528,6 +545,8 @@ class Array(Source, Sink):
         anchor_center.
         """
         self.correction, _, _, _ = np.linalg.lstsq(xy_points, errors)
+        # TODO maybe decide on either returning or setting instance variable,
+        # not both
         return self.correction
 
 
@@ -572,16 +591,7 @@ class Array(Source, Sink):
                 try:
                     dz = float(r)
                     curr_z = self.robot.currentPosition[2 + z_axis]
-
-                    # TODO just make a move fn that takes an index?
-                    if z_axis == 0:
-                        move_z_fn = self.robot.moveZ0
-                    elif z_axis == 1:
-                        move_z_fn = self.robot.moveZ1
-                    elif z_axis == 2:
-                        move_z_fn = self.robot.moveZ2
-
-                    move_z_fn(curr_z + dz)
+                    self.robot.moveZn(z_axis, curr_z + dz)
 
                 except ValueError:
                     print('Could not parse input as a float')

@@ -69,7 +69,8 @@ class MAPLE:
                       }
 
     def __init__(self, robotConfigFile, cam_class=None, smoothie_retry_ms=200,
-            home=True):
+            home=True, enable_z0=True, enable_z1=True, enable_z2=True,
+            z2_has_crash_sensor=True):
         """
         Args:
             cam_class (subclass of cameras.Camera or None): (default=None) If
@@ -81,6 +82,11 @@ class MAPLE:
                 __init__ fails on the first attempt. Otherwise, wait this many
                 milliseconds before retrying Smoothie serial connection.
         """
+        # TODO handle these in config file?
+        self.enabled_z = [enable_z0, enable_z1, enable_z2]
+        self.z2_has_crash_sensor = z2_has_crash_sensor
+        #
+
         print "Reading config file...",
         self.config = ConfigParser.RawConfigParser(self.configDefaults)
         self.readConfig(robotConfigFile)
@@ -217,6 +223,13 @@ class MAPLE:
         thickness (mm) is how high above the worksurface the reference point is
         speed in mm/min
         """
+        if not self.z2_has_crash_sensor:
+            raise RuntimeError(
+                'this function requires Z2 to have a crash sensor')
+
+        if not self.enabled_z[2]:
+            raise RuntimeError('this function requires Z2 to be enabled')
+
         # TODO TODO TODO cache output of this function, optional reset
         # TODO TODO it would be nice to be able to define the Z2 lower
         # limit switch as a zprobe, but I do still want the machine to stop by
@@ -455,21 +468,59 @@ class MAPLE:
         self.currentPosition[1] = position
 
 
-    def moveZ0(self, position):
+    def moveZn(self, axis, position, speed=None):
+        # TODO include X and Y too, so they can get checks + speed?
+        if axis < 0 or axis > 2:
+            raise ValueError('Z axis can only be 0 thru 2')
+
+        if not self.enabled_z[axis]:
+            raise RuntimeError('Z{} is not enabled'.format(axis))
+
+        if position < 0:
+            raise ValueError('negative position invalid (would hit limit)')
+
+        # TODO TODO this should be in smoothie config somewhere. put it there.
+        # or is it already but the stroke on my slides is maybe slightly less
+        # than igus ones?
+        # This seems to be about the end of the travel of my slides.
+        # Presumably the igus ones too.
+        slide_end = 63.5
+        if position > slide_end:
+            raise ValueError('Z axis can not travel past {}'.format(slide_end))
+        #
+        
+        smoothie_axis_code = ['Z', 'A', 'B'][axis]
+        # TODO assert position is floating point? numeric?
+        cmd = 'G01 {}{}\n'.format(smoothie_axis_code, position)
+        if speed is not None:
+            # TODO assert numeric w/ approp representation / formattable
+            cmd += ' F{}'.format(speed)
+        cmd += '\n'
+
+        # TODO is there just a non-modal gcode that will set feed rate only for
+        # this command? (as opposed to having to push and pop current rate)
+        if speed is not None:
+            # "Push" current feed rate (to restore later)
+            self.smoothie.sendSyncCmd('M120\n')
+
+        self.smoothie.sendSyncCmd(cmd)
+
+        if speed is not None:
+            self.smoothie.sendSyncCmd('M121\n')
+
+        self.currentPosition[2 + axis] = position
+
+
+    def moveZ0(self, position, speed=None):
         """Moves the part manipulator effector.
         """
-        # TODO assert position is floating point? numeric?
-        cmd = 'G01 Z{}\n'.format(position)
-        self.smoothie.sendSyncCmd(cmd)
-        self.currentPosition[2] = position
+        self.moveZn(0, position, speed=speed)
 
 
     def moveZ1(self, position):
         """Moves the camera effector.
         """
-        cmd = 'G01 A{}\n'.format(position)
-        self.smoothie.sendSyncCmd(cmd)
-        self.currentPosition[3] = position
+        self.moveZn(1, position, speed=speed)
 
 
     # TODO maybe take a fraction by which to slow down default feed rate as
@@ -479,25 +530,7 @@ class MAPLE:
     def moveZ2(self, position, speed=None):
         """Moves the fly manipulator effector.
         """
-        # TODO is there just a non-modal gcode that will set feed rate only for
-        # this command? (as opposed to having to push and pop current rate)
-        if speed is not None:
-            # "Push" current feed rate (to restore later)
-            self.smoothie.sendSyncCmd('M120\n')
-
-        cmd = 'G01 B{}'.format(position)
-
-        if speed is not None:
-            # TODO assert numeric w/ approp representation / formattable
-            cmd += ' F{}'.format(speed)
-
-        cmd += '\n'
-        self.smoothie.sendSyncCmd(cmd)
-
-        if speed is not None:
-            self.smoothie.sendSyncCmd('M121\n')
-
-        self.currentPosition[4] = position
+        self.moveZn(2, position, speed=speed)
 
 
     def moveTo(self, pt):
