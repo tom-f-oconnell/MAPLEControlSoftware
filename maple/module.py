@@ -236,17 +236,23 @@ class Array(Source, Sink):
     # TODO possible to make it so they can implement either *_xy methods, or
     # override indices methods?
 
-    def set_full(self, ij):
-        """
-        """
-        pass
-
     # TODO TODO provide facility to go to anchor centers, and manually play
     # around with vacuum program to set one
     # TODO maybe also provide way to specify certain parameters to be
     # experimented with (may want machine vision to detect flies before this)
 
+
+    def check_bounds(self, i, j):
+        if i >= self.n_cols:
+            raise ValueError('index i={} out of bounds (n_cols={})'.format(
+                i, self.n_cols))
+        if j >= self.n_rows:
+            raise ValueError('index j={} out of bounds (n_rows={})'.format(
+                j, self.n_rows))
+
+
     def put_indices(self, i, j):
+        self.check_bounds(i, j)
         self.effectors_to_travel_height()
         xy = self.anchor_center(i, j)
         self.put(xy, (i,j))
@@ -257,6 +263,7 @@ class Array(Source, Sink):
     # TODO TODO rename to something like get_by_indices to be clear that this is
     # not returning the indices, but using the indices to get
     def get_indices(self, i, j):
+        self.check_bounds(i, j)
         self.effectors_to_travel_height()
         # TODO rename to _position / coords / xy?
         xy = self.anchor_center(i, j)
