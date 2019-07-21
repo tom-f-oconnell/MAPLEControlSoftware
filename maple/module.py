@@ -71,12 +71,13 @@ class Module(ABC):
                 zx_to_worksurface = self.robot.z2_to_worksurface
 
             zt = zx_to_worksurface - self.extent[2] - extra_room 
-            if current_z[i] <= zt:
-                print(('Z{} already above minimum travel height ({} <= {})'
-                    ).format(i, current_z[i], zt))
-            else:
-                print('Moving Z{} to travel height: {}'.format(i, zt))
+            # TODO put behind verbose flag and uncomment
+            if current_z[i] > zt:
+                #print('Moving Z{} to travel height: {}'.format(i, zt))
                 self.robot.moveZn(i, zt)
+            #else:
+            #    print(('Z{} already above minimum travel height ({} <= {})'
+            #        ).format(i, current_z[i], zt))
 
 
     def contains(self, xy):
@@ -665,6 +666,9 @@ class Array(Source, Sink):
         # close to behavior chambers (only really applies if not full...)
         mask = self.full if full else np.logical_not(self.full)
         coords = np.argwhere(mask)
+        if mask.any().any() == 0:
+            raise RuntimeError('no array locations are {}'.format(full))
+
         # TODO test sorting procedure is doing what i want
         # lexmax?
         # TODO flag to pick whether to start w/ columns or rows
