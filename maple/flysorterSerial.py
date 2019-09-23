@@ -35,10 +35,10 @@ class serialDevice:
     WaitTimeout = 3
     portName = ""
 
-    def __init__(self, port, baud = 9600, timeout = float(0.1)):
+    def __init__(self, port, baud=9600, timeout=0.1):
         self.isOpened = False
         try:
-            self.ser = serial.Serial(port, baudrate = baud, timeout = timeout)
+            self.ser = serial.Serial(port, baudrate = baud, timeout=timeout)
         except:
             raise IOError('Failed to open port {}'.format(port))
 

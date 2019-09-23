@@ -63,6 +63,7 @@ class Module(ABC):
             # TODO need to handle each zx offset to worksurface as w/
             # enable flags to make this loop actually concise
             # (array rather than have # in name)
+            '''
             if i == 0:
                 zx_to_worksurface = self.robot.z0_to_worksurface
             elif i == 1:
@@ -75,6 +76,8 @@ class Module(ABC):
             if current_z[i] > zt:
                 #print('Moving Z{} to travel height: {}'.format(i, zt))
                 self.robot.moveZn(i, zt)
+            '''
+            self.robot.moveZn(i, 0)
             #else:
             #    print(('Z{} already above minimum travel height ({} <= {})'
             #        ).format(i, current_z[i], zt))

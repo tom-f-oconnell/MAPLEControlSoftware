@@ -80,6 +80,7 @@ class Camera(ABC):
         """
         frame = self.get_frame()
         cv2.imwrite(filename, frame)
+        return frame
 
     def write_jpg(self, filename, quality=95):
         """Write current frame to filename in JPG format, with optional quality.
@@ -93,6 +94,7 @@ class Camera(ABC):
         frame = self.get_frame()
         IMWRITE_JPEG_QUALITY = 1
         cv2.imwrite(filename, frame, [IMWRITE_JPEG_QUALITY, quality])
+        return frame
 
 
 class PyICIC_Camera(Camera):
@@ -139,6 +141,7 @@ class PyICIC_Camera(Camera):
         # the 1 is for JPG, 0 is for BMP
         self.cam.save_image(filename, 1, jpeq_quality=qualPic)
         self.cam.stop_live()
+        return frame
 
     def close(self):
         """Releases resources associated with connection to this camera.

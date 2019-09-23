@@ -70,7 +70,7 @@ class MAPLE:
 
     def __init__(self, robotConfigFile, cam_class=None, smoothie_retry_ms=200,
             home=True, enable_z0=True, enable_z1=True, enable_z2=True,
-            z2_has_crash_sensor=True):
+            z2_has_crash_sensor=True, timeout=0.1):
         """
         Args:
             cam_class (subclass of cameras.Camera or None): (default=None) If
@@ -104,7 +104,7 @@ class MAPLE:
             # TODO delete me
             print('Trying port {}'.format(portDesc))
             #
-            tempPort = flysorterSerial.serialDevice(portDesc, 115200)
+            tempPort = flysorterSerial.serialDevice(portDesc, 115200, timeout=timeout)
             reply = tempPort.sendCmdGetReply("version\n")
             if reply.startswith("Build version"):
                 # TODO delete me
@@ -133,13 +133,14 @@ class MAPLE:
 
         if self.cam_enabled:
             def print_builtin_cameras():
-                cams = pyclbr.readmodule('cameras')
+                # TODO check this maple prefix works installed other ways?
+                cams = pyclbr.readmodule('maple.cameras')
                 cams.pop('Camera')
                 cams.pop('CameraNotFoundError')
                 cams.pop('NoFrameError')
                 print '\n\nAvailable cameras:'
                 for c in cams:
-                    print 'cameras.{}'.format(c)
+                    print 'maple.cameras.{}'.format(c)
 
             def class2str(cls):
                 return '{}.{}'.format(cls.__module__, cls.__name__)
@@ -148,7 +149,8 @@ class MAPLE:
             if cam_class is None:
                 parts = self.full_cam_class_name.rsplit('.', 1)
                 try:
-                    cam_module = importlib.import_module(parts[0])
+                    # TODO make import robust to whether maple prefix is included
+                    cam_module = importlib.import_module(parts[0], 'maple')
                     cam_class = getattr(cam_module, parts[1])
 
                 except (ImportError, AttributeError) as e:
@@ -517,7 +519,7 @@ class MAPLE:
         self.moveZn(0, position, speed=speed)
 
 
-    def moveZ1(self, position):
+    def moveZ1(self, position, speed=None):
         """Moves the camera effector.
         """
         self.moveZn(1, position, speed=speed)
